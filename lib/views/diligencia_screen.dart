@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../widgets/custom_appbar.dart';
 import '../widgets/detail_card.dart';
+import '../widgets/custom_bottom_nav.dart';
+
 
 class DiligenciaScreen extends StatefulWidget {
   final String title;
@@ -147,15 +149,8 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: Colors.teal,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: "Calendario"),
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: "Actividades"),
-          BottomNavigationBarItem(icon: Icon(Icons.label), label: "Label"),
-        ],
-      ),
+       bottomNavigationBar: const CustomBottomNav(currentIndex: 1),
+
     );
   }
 }
