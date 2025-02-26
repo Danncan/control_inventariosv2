@@ -61,7 +61,7 @@ class ActivityCard extends StatelessWidget {
                 _buildDetail("Hora", time),
                 const SizedBox(height: 8),
 
-                // 🔥 Nuevo: Botón para navegar a la pantalla de diligencia con detalles
+                // 
                 Align(
                   alignment: Alignment.center,
                   child: ElevatedButton(
