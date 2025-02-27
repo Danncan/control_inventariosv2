@@ -109,6 +109,7 @@ class CalendarScreenState extends State<CalendarScreen> {
                           itemBuilder: (context, index) {
                             final activity = _events[_selectedDay]![index];
                             return ActivityCard(
+                              id: activity['id']!,
                               title: activity['title']!,
                               imageUrl: activity['imageUrl']!,
                               location: activity['location']!,

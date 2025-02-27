@@ -20,7 +20,7 @@ class CustomBottomNav extends StatelessWidget {
         screen = const HomeScreen();
         break;
       case 2:
-        screen = const ActivityListScreen();
+        screen = const  ActivityListScreen();
         break;
       default:
         screen = const HomeScreen();

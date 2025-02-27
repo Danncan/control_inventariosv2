@@ -71,6 +71,7 @@ class HomeScreenState extends State<HomeScreen> {
                                 itemBuilder: (context, index) {
                                   final actividad = actividadesHoy[index];
                                   return ActivityCard(
+                                    id: actividad['id']!,
                                     title: actividad['title']!,
                                     imageUrl: actividad['imageUrl']!,
                                     location: actividad['location']!,
@@ -129,6 +130,7 @@ class HomeScreenState extends State<HomeScreen> {
                                 itemBuilder: (context, index) {
                                   final actividad = actividadesProximas[index];
                                   return ActivityCard(
+                                   id: actividad['id']!,
                                     title: actividad['title']!,
                                     imageUrl: actividad['imageUrl']!,
                                     location: actividad['location']!,

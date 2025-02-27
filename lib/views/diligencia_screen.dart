@@ -4,13 +4,13 @@ import '../widgets/custom_appbar.dart';
 import '../widgets/detail_card.dart';
 import '../widgets/custom_bottom_nav.dart';
 
-
 class DiligenciaScreen extends StatefulWidget {
   final String title;
   final String imageUrl;
   final String location;
   final String date;
   final String time;
+  final VoidCallback onEntradaRegistrada; // 👈 Agregado este parámetro
 
   const DiligenciaScreen({
     super.key,
@@ -19,6 +19,7 @@ class DiligenciaScreen extends StatefulWidget {
     required this.location,
     required this.date,
     required this.time,
+    required this.onEntradaRegistrada, // 👈 Y acá también
   });
 
   @override
@@ -28,13 +29,8 @@ class DiligenciaScreen extends StatefulWidget {
 class DiligenciaScreenState extends State<DiligenciaScreen> {
   String _ubicacion = "Ubicación no obtenida";
 
-  // 🔥 Función para obtener la ubicación
   Future<void> _obtenerUbicacion() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // 1️⃣ Verifica si el servicio de ubicación está activado
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       setState(() {
         _ubicacion = "El servicio de ubicación está desactivado.";
@@ -42,8 +38,7 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
       return;
     }
 
-    // 2️⃣ Verifica y solicita permisos
-    permission = await Geolocator.checkPermission();
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
@@ -56,29 +51,25 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
 
     if (permission == LocationPermission.deniedForever) {
       setState(() {
-        _ubicacion = "Los permisos de ubicación están permanentemente denegados.";
+        _ubicacion = "Permisos de ubicación permanentemente denegados.";
       });
       return;
     }
 
-    // 3️⃣ Obtener ubicación actual (🔥 Usando `locationSettings` en lugar de `desiredAccuracy`)
     Position position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-      ),
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
     );
 
     setState(() {
       _ubicacion = "Lat: ${position.latitude}, Lng: ${position.longitude}";
     });
 
-    // 🔥 Ahora usamos `debugPrint()` en lugar de `print()`
     debugPrint("Ubicación obtenida: $_ubicacion");
   }
 
   @override
   Widget build(BuildContext context) {
-    final Map<String, String> detallesIzquierda = {
+    final detallesIzquierda = {
       "Tipo": "Juicio de Alimentos",
       "Ubicación": widget.location,
       "Fecha": widget.date,
@@ -86,7 +77,7 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
       "Abogado Asignado": "Dr. Juan Pérez",
     };
 
-    final Map<String, String> detallesDerecha = {
+    final detallesDerecha = {
       "Duración Estimada": "2 horas",
       "Referencia del Expediente": "2025-AL-00789",
       "Contraparte": "María Gómez",
@@ -96,61 +87,61 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
     return Scaffold(
       appBar: const CustomAppBar(title: 'Diligencia', showBackButton: true),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text(
-                "Registrar Entrada:",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Text(
+              "Registrar Entrada:",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Image.asset(widget.imageUrl, height: 150, fit: BoxFit.contain),
+            const SizedBox(height: 20),
+            DetailCard(leftDetails: detallesIzquierda, rightDetails: detallesDerecha),
+            const SizedBox(height: 20),
+            Text(
+              _ubicacion,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () async {
+                await _obtenerUbicacion();
 
-              // Imagen de la actividad
-              Center(
-                child: Image.asset(
-                  widget.imageUrl,
-                  height: 150,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: 20),
+                if (!mounted) return;  // 🔥 Importante: Protege de cambios después de dispose
 
-              // Tarjeta con los detalles de la actividad
-              DetailCard(leftDetails: detallesIzquierda, rightDetails: detallesDerecha),
-              const SizedBox(height: 20),
+                if (mounted) {
+                  // ignore: use_build_context_synchronously
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Entrada registrada con éxito."),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
 
-              // Mostrar ubicación obtenida
-              Text(
-                _ubicacion,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
+                  widget.onEntradaRegistrada();
 
-              // Botón de Registrar Entrada (Obtiene la ubicación)
-              ElevatedButton(
-                onPressed: _obtenerUbicacion, // 🔥 Llamar la función de ubicación
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: const Text(
-                  "Registrar Entrada",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
+                  // ignore: use_build_context_synchronously
+                  Navigator.pop(context);  // 🔥 Solo si sigue montado, regresa al home
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              const SizedBox(height: 40),
-            ],
-          ),
+              child: const Text(
+                "Registrar Entrada",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
       ),
-       bottomNavigationBar: const CustomBottomNav(currentIndex: 1),
-
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 1),
     );
   }
 }

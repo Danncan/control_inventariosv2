@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../views/diligencia_screen.dart';
+import '../views/register_exit_screen.dart';
+import '../providers/activity_provider.dart';
 
 class ActivityCard extends StatelessWidget {
+  final String id;
   final String title;
   final String imageUrl;
   final String location;
@@ -10,6 +15,7 @@ class ActivityCard extends StatelessWidget {
 
   const ActivityCard({
     super.key,
+    required this.id,
     required this.title,
     required this.imageUrl,
     required this.location,
@@ -20,7 +26,7 @@ class ActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 180, // Tamaño fijo para evitar desbordes
+      width: 180,
       margin: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -61,27 +67,13 @@ class ActivityCard extends StatelessWidget {
                 _buildDetail("Hora", time),
                 const SizedBox(height: 8),
 
-                // 
                 Align(
                   alignment: Alignment.center,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DiligenciaScreen(
-                            title: title,
-                            imageUrl: imageUrl,
-                            location: location,
-                            date: date,
-                            time: time,
-                          ),
-                        ),
-                      );
-                    },
+                    onPressed: () => _verificarAcceso(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal,
-                      foregroundColor: Colors.white, // Color del texto
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -99,6 +91,66 @@ class ActivityCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _verificarAcceso(BuildContext context) {
+    final provider = Provider.of<ActivityProvider>(context, listen: false);
+
+    DateTime activityDate = DateFormat("dd-MMM-yyyy").parse(date);
+    DateTime now = DateTime.now();
+
+    DateTime activityTime = DateFormat("HH:mm").parse(time);
+    DateTime nowTime = DateFormat("HH:mm").parse("${now.hour}:${now.minute}");
+
+    bool esHoy = activityDate.year == now.year && activityDate.month == now.month && activityDate.day == now.day;
+    bool esHoraPermitida = nowTime.isAfter(activityTime) || nowTime.isAtSameMomentAs(activityTime);
+
+    String estado = provider.obtenerEstadoRegistro(id);
+
+    if (!esHoy) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Solo puedes acceder a actividades del día de hoy."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (!esHoraPermitida) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("No puedes registrar la entrada antes de la hora programada."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (estado == "entrada") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RegisterExitScreen(title: title, id: id,),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DiligenciaScreen(
+            title: title,
+            imageUrl: imageUrl,
+            location: location,
+            date: date,
+            time: time,
+            onEntradaRegistrada: () {
+              provider.actualizarEstadoRegistro(id, "entrada");
+            },
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildDetail(String label, String value) {
