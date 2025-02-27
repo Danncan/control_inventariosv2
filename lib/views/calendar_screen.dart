@@ -62,7 +62,7 @@ class CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Calendario', showBackButton: true),
+      appBar: const CustomAppBar(title: 'Calendario'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator()) // 🔥 Muestra un loader mientras carga
           : Column(

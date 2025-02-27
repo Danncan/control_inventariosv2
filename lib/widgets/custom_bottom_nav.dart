@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../views/home_screen.dart';
 import '../views/calendar_screen.dart';
-//import '../views/activity_list_screen.dart';
+import '../views/activity_list_screen.dart';
 
 class CustomBottomNav extends StatelessWidget {
   final int currentIndex;
@@ -20,7 +20,7 @@ class CustomBottomNav extends StatelessWidget {
         screen = const HomeScreen();
         break;
       case 2:
-        screen = const CalendarScreen();
+        screen = const ActivityListScreen();
         break;
       default:
         screen = const HomeScreen();
