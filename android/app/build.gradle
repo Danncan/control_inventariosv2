@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.control_inventariosv2"
+    namespace  "com.example.control_inventariosv2"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

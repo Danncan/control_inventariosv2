@@ -105,6 +105,10 @@ class ActivityCard extends StatelessWidget {
     bool esHoy = activityDate.year == now.year && activityDate.month == now.month && activityDate.day == now.day;
     bool esHoraPermitida = nowTime.isAfter(activityTime) || nowTime.isAtSameMomentAs(activityTime);
 
+    // 🔥 Nueva validación: No permitir entrada si han pasado más de 30 minutos de la hora registrada
+    DateTime limiteTiempo = activityTime.add(const Duration(minutes: 30));
+    bool fueraDeTiempo = nowTime.isAfter(limiteTiempo);
+
     String estado = provider.obtenerEstadoRegistro(id);
 
     if (!esHoy) {
@@ -127,11 +131,21 @@ class ActivityCard extends StatelessWidget {
       return;
     }
 
+    if (fueraDeTiempo) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("No puedes registrar la entrada. Han pasado más de 30 minutos desde la hora establecida."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (estado == "entrada") {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => RegisterExitScreen(title: title, id: id,),
+          builder: (context) => RegisterExitScreen(title: title, id: id),
         ),
       );
     } else {
