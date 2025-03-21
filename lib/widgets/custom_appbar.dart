@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/activity_provider.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -14,20 +16,27 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: showBackButton
           ? IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context), // 🔥 Retrocede a la pantalla anterior
+              onPressed: () => Navigator.pop(context),
             )
           : null,
       actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications, color: Colors.white),
-          onPressed: () {
-            // Acción para notificaciones
-          },
-        ),
-        IconButton(
-          icon: const Icon(Icons.settings, color: Colors.white),
-          onPressed: () {
-            // Acción para configuración
+        Consumer<ActivityProvider>(
+          builder: (context, provider, child) {
+            return Switch(
+              value: provider.isOfflineMode,
+              onChanged: (value) {
+                provider.toggleOfflineMode(value);
+
+                // 🔥 Mostrar mensaje
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(value ? "Modo offline activado" : "Modo online activado"),
+                    backgroundColor: value ? Colors.orange : Colors.green,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+            );
           },
         ),
       ],

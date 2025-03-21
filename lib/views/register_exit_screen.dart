@@ -25,7 +25,7 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
   final List<String> estados = ["Completada", "Suspendida", "Cancelada", "Pospuesta"];
   String? _estadoSeleccionado;
   final TextEditingController _resumenController = TextEditingController();
-  String _ubicacion = "Ubicación no obtenida";
+  final String _ubicacion = "Ubicación no obtenida";
   bool _isLoading = false;
 
   // 📍 Función para registrar la salida y eliminarla

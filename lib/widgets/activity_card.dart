@@ -153,6 +153,7 @@ class ActivityCard extends StatelessWidget {
         context,
         MaterialPageRoute(
           builder: (context) => DiligenciaScreen(
+            id: id,
             title: title,
             imageUrl: imageUrl,
             location: location,

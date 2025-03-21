@@ -19,7 +19,7 @@ class DiligenciaScreen extends StatefulWidget {
     required this.location,
     required this.date,
     required this.time,
-    required this.onEntradaRegistrada,
+    required this.onEntradaRegistrada, required id,
   });
 
   @override
