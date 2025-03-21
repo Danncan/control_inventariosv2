@@ -10,7 +10,7 @@ class DiligenciaScreen extends StatefulWidget {
   final String location;
   final String date;
   final String time;
-  final VoidCallback onEntradaRegistrada; // 👈 Se ejecuta cuando se registra la entrada
+  final VoidCallback onEntradaRegistrada;
 
   const DiligenciaScreen({
     super.key,
@@ -28,12 +28,10 @@ class DiligenciaScreen extends StatefulWidget {
 
 class DiligenciaScreenState extends State<DiligenciaScreen> {
   String _ubicacion = "Ubicación no obtenida";
-  bool _isLoading = false; // 🔄 Estado de carga
+  bool _isLoading = false;
 
   Future<void> _registrarEntrada() async {
-    setState(() {
-      _isLoading = true; // 🔄 Mostrar loader
-    });
+    setState(() => _isLoading = true);
 
     try {
       final position = await _obtenerUbicacion();
@@ -53,26 +51,17 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
           ),
         );
         widget.onEntradaRegistrada();
-        Navigator.pop(context); // 🔥 Regresa al HomeScreen
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _ubicacion = "Error: $e";
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error al obtener la ubicación: $e"),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _mostrarAlertaPermisos(context);
       }
     }
   }
 
-  // 📍 Obtener ubicación con manejo de permisos
   Future<Position> _obtenerUbicacion() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -88,11 +77,40 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      throw Exception("Permisos de ubicación permanentemente denegados.");
+      throw Exception("Los permisos están permanentemente denegados.");
     }
 
     return await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+    );
+  }
+
+  void _mostrarAlertaPermisos(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          title: const Text("Permisos de Ubicación Requeridos"),
+          content: const Text(
+              "Para registrar la entrada, la aplicación necesita acceso a tu ubicación. "
+              "Por favor, ve a los ajustes del dispositivo y habilita los permisos de ubicación."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+              },
+              child: const Text("Cancelar"),
+            ),
+            TextButton(
+              onPressed: () async {
+                await Geolocator.openAppSettings();
+                Navigator.of(ctx).pop();
+              },
+              child: const Text("Abrir Ajustes"),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -130,7 +148,6 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
             DetailCard(leftDetails: detallesIzquierda, rightDetails: detallesDerecha),
             const SizedBox(height: 20),
 
-            // 📍 Mostrar la ubicación obtenida
             Text(
               _ubicacion,
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
@@ -138,7 +155,6 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
             ),
             const SizedBox(height: 10),
 
-            // 🔘 Botón de "Registrar Entrada" con loader
             ElevatedButton(
               onPressed: _isLoading ? null : _registrarEntrada,
               style: ElevatedButton.styleFrom(
@@ -147,7 +163,7 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white) // 🔄 Loader mientras obtiene ubicación
+                  ? const CircularProgressIndicator(color: Colors.white)
                   : const Text(
                       "Registrar Entrada",
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),

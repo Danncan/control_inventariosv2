@@ -6,7 +6,7 @@ import '../widgets/custom_bottom_nav.dart';
 import '../providers/activity_provider.dart';
 
 class RegisterExitScreen extends StatefulWidget {
-  final String id;  // Necesitamos el id para eliminar
+  final String id;
   final String title;
   final String imageUrl;
 
@@ -25,7 +25,7 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
   final List<String> estados = ["Completada", "Suspendida", "Cancelada", "Pospuesta"];
   String? _estadoSeleccionado;
   final TextEditingController _resumenController = TextEditingController();
-  final String _ubicacion = "Ubicación no obtenida";
+  String _ubicacion = "Ubicación no obtenida";
   bool _isLoading = false;
 
   // 📍 Función para registrar la salida y eliminarla
@@ -39,9 +39,7 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final position = await _obtenerUbicacion();
@@ -49,9 +47,7 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
       if (!mounted) return;
 
       final provider = Provider.of<ActivityProvider>(context, listen: false);
-
       provider.actualizarEstadoRegistro(widget.id, "salida");
-
       provider.eliminarActividad(widget.id); // 🔥 Elimina de la lista
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -64,15 +60,9 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
       Navigator.pop(context);  // 🔥 Regresar al HomeScreen
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error al obtener la ubicación: $e"), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
+
+        _mostrarAlertaPermisos(context);
       }
     }
   }
@@ -93,11 +83,39 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      throw Exception("Permisos de ubicación permanentemente denegados.");
+      throw Exception("Los permisos están permanentemente denegados.");
     }
 
     return await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+    );
+  }
+
+  // 🔥 Mostrar alerta cuando los permisos están denegados permanentemente
+  void _mostrarAlertaPermisos(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          title: const Text("Permisos de Ubicación Requeridos"),
+          content: const Text(
+              "Para registrar la salida, la aplicación necesita acceso a tu ubicación. "
+              "Por favor, ve a los ajustes del dispositivo y habilita los permisos de ubicación."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text("Cancelar"),
+            ),
+            TextButton(
+              onPressed: () async {
+                await Geolocator.openAppSettings();
+                Navigator.of(ctx).pop();
+              },
+              child: const Text("Abrir Ajustes"),
+            ),
+          ],
+        );
+      },
     );
   }
 
