@@ -1,10 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:async';
+
+import 'forgotpasword_screen.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
   LoginScreenState createState() => LoginScreenState();
@@ -16,48 +20,106 @@ class LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
 
-  // ✅ Simulación de API
   Future<void> _login() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
-    await Future.delayed(const Duration(seconds: 2));
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    String email = _emailController.text.trim();
-    String password = _passwordController.text.trim();
-
-    debugPrint("🟢 Intentando login con: $email, $password");
-
-    if (email == "admin@puce.com" && password == "123456") {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString("email", email);
-      await prefs.setString("password", password);
-
-      if (!mounted) return; // ✅ Evita `use_build_context_synchronously`
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      debugPrint("✅ Login exitoso");
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } else {
-      if (!mounted) return; // ✅ Evita `use_build_context_synchronously`
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      debugPrint("❌ Login fallido");
-
+    // Validaciones mínimas
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Email o contraseña incorrectos."),
+          content: Text("Ingrese su correo y contraseña."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Petición al servidor
+    final url = Uri.parse("http://172.16.0.64:3000/login"); // Ajusta tu URL real
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "Internal_Email": email,
+          "Internal_Password": password,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // Éxito en la petición
+        final responseData = jsonDecode(response.body);
+        final token = responseData['token'];
+
+        if (token == null) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("No se recibió token del servidor."),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // Decodificar token
+        final decodedToken = JwtDecoder.decode(token);
+        final userId = decodedToken["id"];
+        final userEmail = decodedToken["email"];
+
+        // Guardar token y datos en SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString("token", token);
+        if (userId != null) {
+          await prefs.setString("userId", userId.toString());
+        }
+        if (userEmail != null) {
+          await prefs.setString("userEmail", userEmail);
+        }
+
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+
+        // Navegar a Home
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else {
+        // Error en el statusCode
+        debugPrint("Status code: ${response.statusCode}");
+        debugPrint("Response body: ${response.body}");
+
+        String errorMessage = "Error desconocido en el login.";
+        try {
+          final errorData = jsonDecode(response.body);
+          errorMessage = errorData['message'] ?? errorMessage;
+        } catch (_) {
+          // Body no es JSON
+          errorMessage = response.body;
+        }
+
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (error) {
+      // Error de conexión o excepción
+      debugPrint("❌ Error en la petición de login: $error");
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Ocurrió un error: $error"),
           backgroundColor: Colors.red,
         ),
       );
@@ -66,102 +128,146 @@ class LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Ocultar teclado al tocar fuera de los TextFields
     return Scaffold(
-      backgroundColor: Colors.white, // ✅ Se asegura fondo blanco
-      resizeToAvoidBottomInset: true, // ✅ Permite que el teclado no bloquee los inputs
       body: GestureDetector(
-        behavior: HitTestBehavior.opaque, // ✅ Permite capturar toques y cerrar teclado
-        onTap: () {
-          FocusScope.of(context).unfocus(); // ✅ Cierra el teclado al tocar fuera
-        },
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 5)],
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Stack(
+          children: [
+            // 1) Imagen de fondo
+            Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage("assets/puce.jpg"), // Ajusta tu ruta
+                  fit: BoxFit.cover,
+                ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset('assets/PuceLogo.jpg', height: 80),
-                  const SizedBox(height: 10),
+            ),
 
-                  const Text("Bienvenido", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
+            // 2) Capa con color + transparencia (oscurece el fondo)
+            Container(
+              color: Colors.black.withOpacity(0.4),
+            ),
 
-                  TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: "Email",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onChanged: (value) {
-                      debugPrint("📝 Email ingresado: $value");
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: "Password",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+            // 3) Contenido centrado (tarjeta)
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+                child: Container(
+                  width: 380, // Ajusta a tu gusto
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                    onChanged: (value) {
-                      debugPrint("📝 Password ingresado: $value");
-                    },
+                    ],
                   ),
-                  const SizedBox(height: 12),
-
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        debugPrint("🔹 Opción '¿Olvidaste tu contraseña?' seleccionada.");
-                      },
-                      child: const Text("¿Olvidaste tu contraseña?"),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  _isLoading
-                      ? const CircularProgressIndicator()
-                      : ElevatedButton(
-                          onPressed: () async {
-                            debugPrint("🟢 Botón Login presionado");
-                            await _login();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: const Text(
-                            "Login",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                ],
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _buildLoginContent(),
+                ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Separa el contenido del login para mantener orden
+  Widget _buildLoginContent() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Logo PUCE (ajusta la ruta según tus assets)
+        Image.asset(
+          'assets/cjpuce.png',
+          height: 80,
+        ),
+        const SizedBox(height: 16),
+
+        // Título
+        const Text(
+          "Bienvenido",
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.teal,
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Campo Email
+        TextField(
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: InputDecoration(
+            labelText: "Email",
+            prefixIcon: const Icon(Icons.email_outlined),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Colors.grey.shade100,
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Campo Password
+        TextField(
+          controller: _passwordController,
+          obscureText: _obscurePassword,
+          decoration: InputDecoration(
+            labelText: "Password",
+            prefixIcon: const Icon(Icons.lock_outline),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            suffixIcon: IconButton(
+              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+              onPressed: () {
+                setState(() => _obscurePassword = !_obscurePassword);
+              },
             ),
           ),
         ),
-      ),
+        const SizedBox(height: 12),
+
+        // ¿Olvidaste tu contraseña?
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () {
+              debugPrint("🔹 Opción '¿Olvidaste tu contraseña?' seleccionada.");
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+              );
+            },
+            child: const Text("¿Olvidaste tu contraseña?"),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Botón de Login
+        ElevatedButton(
+          onPressed: _login,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.teal,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Text(
+            "Login",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
     );
   }
 }
