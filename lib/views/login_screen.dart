@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';  // <-- nuevo
+
 
 import 'forgotpasword_screen.dart';
 import 'home_screen.dart';
@@ -21,8 +23,19 @@ class LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login() async {
-    setState(() => _isLoading = true);
+    final conn = await Connectivity().checkConnectivity();
+    if (conn == ConnectivityResult.none) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Para utilizar la aplicación necesitas Internet."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
+    setState(() => _isLoading = true);  
+    
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -39,7 +52,7 @@ class LoginScreenState extends State<LoginScreen> {
     }
 
     // Petición al servidor
-    final url = Uri.parse("http://172.16.0.64:3000/login"); // Ajusta tu URL real
+    final url = Uri.parse("http://192.168.18.104:3000/login"); // Ajusta tu URL real
     try {
       final response = await http.post(
         url,
