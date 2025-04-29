@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+
 import '../views/diligencia_screen.dart';
 import '../views/register_exit_screen.dart';
 import '../providers/activity_provider.dart';
@@ -36,6 +37,7 @@ class ActivityCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Imagen
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
             child: Image.asset(
@@ -43,30 +45,28 @@ class ActivityCard extends StatelessWidget {
               height: 110,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 80,
-                  width: double.infinity,
-                  color: Colors.grey.shade300,
-                  child: const Center(
-                    child: Icon(Icons.image_not_supported, size: 40),
-                  ),
-                );
-              },
+              errorBuilder: (_, __, ___) => Container(
+                height: 80,
+                width: double.infinity,
+                color: Colors.grey.shade300,
+                child: const Center(child: Icon(Icons.image_not_supported, size: 40)),
+              ),
             ),
           ),
+          // Detalles
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(title,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 4),
                 _buildDetail("Ubicación", location),
                 _buildDetail("Fecha", date),
                 _buildDetail("Hora", time),
                 const SizedBox(height: 8),
-
+                // Botón
                 Align(
                   alignment: Alignment.center,
                   child: ElevatedButton(
@@ -79,10 +79,7 @@ class ActivityCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
-                      "Ver más",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                    child: const Text("Ver más", style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -96,20 +93,22 @@ class ActivityCard extends StatelessWidget {
   void _verificarAcceso(BuildContext context) {
     final provider = Provider.of<ActivityProvider>(context, listen: false);
 
-    DateTime activityDate = DateFormat("dd-MMM-yyyy").parse(date);
-    DateTime now = DateTime.now();
+    // Parseo de fecha y hora
+    final activityDate = DateFormat("dd-MMM-yyyy").parse(date);
+    final now = DateTime.now();
+    final activityTime = DateFormat("HH:mm").parse(time);
+    final nowTime = DateFormat("HH:mm").parse("${now.hour}:${now.minute}");
 
-    DateTime activityTime = DateFormat("HH:mm").parse(time);
-    DateTime nowTime = DateFormat("HH:mm").parse("${now.hour}:${now.minute}");
+    // Validaciones
+    final esHoy = activityDate.year == now.year &&
+        activityDate.month == now.month &&
+        activityDate.day == now.day;
+    final esHoraPermitida =
+        nowTime.isAfter(activityTime) || nowTime.isAtSameMomentAs(activityTime);
+    final limite = activityTime.add(const Duration(minutes: 30));
+    final fueraDeTiempo = nowTime.isAfter(limite);
 
-    bool esHoy = activityDate.year == now.year && activityDate.month == now.month && activityDate.day == now.day;
-    bool esHoraPermitida = nowTime.isAfter(activityTime) || nowTime.isAtSameMomentAs(activityTime);
-
-    // 🔥 Nueva validación: No permitir entrada si han pasado más de 30 minutos de la hora registrada
-    DateTime limiteTiempo = activityTime.add(const Duration(minutes: 30));
-    bool fueraDeTiempo = nowTime.isAfter(limiteTiempo);
-
-    String estado = provider.obtenerEstadoRegistro(id);
+    final estado = provider.obtenerEstadoRegistro(id);
 
     if (!esHoy) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -120,39 +119,40 @@ class ActivityCard extends StatelessWidget {
       );
       return;
     }
-
     if (!esHoraPermitida) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("No puedes registrar la entrada antes de la hora programada."),
+          content:
+              Text("No puedes registrar la entrada antes de la hora programada."),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
-
     if (fueraDeTiempo) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("No puedes registrar la entrada. Han pasado más de 30 minutos desde la hora establecida."),
+          content: Text(
+              "No puedes registrar la entrada. Han pasado más de 30 minutos."),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
+    // Navegación según estado
     if (estado == "entrada") {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => RegisterExitScreen(title: title, id: id),
+          builder: (_) => RegisterExitScreen(id: id, title: title),
         ),
       );
     } else {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => DiligenciaScreen(
+          builder: (_) => DiligenciaScreen(
             id: id,
             title: title,
             imageUrl: imageUrl,
@@ -173,18 +173,14 @@ class ActivityCard extends StatelessWidget {
       text: TextSpan(
         text: "$label: ",
         style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
-          fontSize: 14,
-        ),
+            fontWeight: FontWeight.bold, color: Colors.black, fontSize: 14),
         children: [
           TextSpan(
             text: value,
             style: const TextStyle(
-              fontWeight: FontWeight.normal,
-              color: Colors.grey,
-              fontSize: 14,
-            ),
+                fontWeight: FontWeight.normal,
+                color: Colors.grey,
+                fontSize: 14),
           ),
         ],
       ),

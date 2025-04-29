@@ -7,9 +7,9 @@ import 'package:intl/intl.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../widgets/custom_appbar.dart';
+import '../widgets/custom_bottom_nav.dart';
 import '../widgets/activity_card.dart';
 import '../providers/activity_provider.dart';
-import '../widgets/custom_bottom_nav.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,27 +29,31 @@ class HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
 
-    // 1️⃣ Configurar escucha de conectividad
-    Connectivity().checkConnectivity().then((result) {
-      setState(() => _hasConnection = result != ConnectivityResult.none);
+    // Escucha cambios de conectividad
+    Connectivity().checkConnectivity().then((res) {
+      setState(() => _hasConnection = res != ConnectivityResult.none);
     });
-    _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
-      final newStatus = result != ConnectivityResult.none;
-      if (newStatus != _hasConnection) {
-        setState(() => _hasConnection = newStatus);
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen((res) {
+      final connected = res != ConnectivityResult.none;
+      if (connected != _hasConnection) {
+        setState(() => _hasConnection = connected);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(newStatus ? 'Conexión restablecida' : 'Sin conexión'),
-            backgroundColor: newStatus ? Colors.green : Colors.red,
+            content: Text(
+              connected ? 'Conexión restablecida' : 'Sin conexión',
+            ),
+            backgroundColor: connected ? Colors.green : Colors.red,
             duration: const Duration(seconds: 2),
           ),
         );
       }
     });
 
-    // 2️⃣ Pedir datos UNA sola vez
-    final provider = context.read<ActivityProvider>();
-    Future.microtask(() => provider.fetchActivities());
+    // Carga actividades UNA sola vez
+    final provider =
+        Provider.of<ActivityProvider>(context, listen: false);
+    provider.fetchActivities();
   }
 
   @override
@@ -64,8 +68,10 @@ class HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final activityProvider = context.watch<ActivityProvider>();
 
-    // 3️⃣ Separar "hoy" vs "próximas"
+    // Fecha de hoy
     final today = DateFormat('dd-MMM-yyyy').format(DateTime.now());
+
+    // Filtra listas
     final actividadesHoy = activityProvider.activities
         .where((a) => a['date'] == today)
         .toList();
@@ -84,10 +90,9 @@ class HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Actividades de Hoy",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            const Text("Actividades de Hoy",
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             SizedBox(
               height: 280,
@@ -97,7 +102,7 @@ class HomeScreenState extends State<HomeScreen> {
                     child: PageView.builder(
                       controller: _pageControllerHoy,
                       itemCount: actividadesHoy.length,
-                      itemBuilder: (context, i) {
+                      itemBuilder: (ctx, i) {
                         final a = actividadesHoy[i];
                         return ActivityCard(
                           id: a['id'],
@@ -130,14 +135,13 @@ class HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "Actividades Próximas",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                const Text("Actividades Próximas",
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 IconButton(
                   icon: const Icon(Icons.arrow_forward),
                   onPressed: () {
-                    // Aquí podrías navegar a una pantalla con TODAS las próximas
+                    // Navegar a todas las próximas...
                   },
                 ),
               ],
@@ -151,7 +155,7 @@ class HomeScreenState extends State<HomeScreen> {
                     child: PageView.builder(
                       controller: _pageControllerProximas,
                       itemCount: actividadesProximas.length,
-                      itemBuilder: (context, i) {
+                      itemBuilder: (ctx, i) {
                         final a = actividadesProximas[i];
                         return ActivityCard(
                           id: a['id'],
@@ -196,7 +200,7 @@ class HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: const Center(
                 child: Text(
-                  "Sin conexión: mostrando datos en caché",
+                  "Sin conexión: mostrando datos locales",
                   style: TextStyle(color: Colors.white),
                 ),
               ),

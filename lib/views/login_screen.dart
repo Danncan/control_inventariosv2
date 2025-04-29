@@ -52,7 +52,7 @@ class LoginScreenState extends State<LoginScreen> {
     }
 
     // Petición al servidor
-    final url = Uri.parse("http://192.168.18.104:3000/login"); // Ajusta tu URL real
+    final url = Uri.parse("http://192.168.18.117:3000/login"); // Ajusta tu URL real
     try {
       final response = await http.post(
         url,
@@ -78,12 +78,14 @@ class LoginScreenState extends State<LoginScreen> {
           );
           return;
         }
-
+        print( "Token recibido: $token");
         // Decodificar token
         final decodedToken = JwtDecoder.decode(token);
         final userId = decodedToken["id"];
         final userEmail = decodedToken["email"];
-
+        print("Token decodificado: $decodedToken");
+        print("ID de usuario: $userId");
+        print("Email de usuario: $userEmail");
         // Guardar token y datos en SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString("token", token);

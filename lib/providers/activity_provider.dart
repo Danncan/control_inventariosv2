@@ -3,16 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:intl/intl.dart';
 
 class ActivityProvider with ChangeNotifier {
   List<Map<String, dynamic>> _activities = [];
   bool _isLoading = false;
-  bool _isOfflineMode = false; // 🔥 Estado del modo offline
-  List<Map<String, dynamic>> _pendingUpdates = []; // 🔥 Peticiones pendientes
+  List<Map<String, dynamic>> _pendingUpdates = [];
 
   List<Map<String, dynamic>> get activities => _activities;
   bool get isLoading => _isLoading;
-  bool get isOfflineMode => _isOfflineMode;
 
   ActivityProvider() {
     _loadCachedActivities();
@@ -20,157 +19,163 @@ class ActivityProvider with ChangeNotifier {
     _monitorConnectivity();
   }
 
-  // 🔥 Alternar modo offline
-  void toggleOfflineMode(bool isOffline) {
-    _isOfflineMode = isOffline;
-    notifyListeners();
-  }
-
-  // 🔥 Cargar actividades desde caché
+  /// Carga del caché local
   Future<void> _loadCachedActivities() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? cachedData = prefs.getString("cached_activities");
-
-    if (cachedData != null) {
-      _activities = List<Map<String, dynamic>>.from(json.decode(cachedData));
+    final String? cached = prefs.getString("cached_activities");
+    if (cached != null) {
+      _activities = List<Map<String, dynamic>>.from(json.decode(cached));
       notifyListeners();
     }
   }
 
-  // 🔥 Guardar actividades en caché
+  /// Guarda en caché
   Future<void> _saveToCache() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString("cached_activities", json.encode(_activities));
+    await prefs.setString("cached_activities", json.encode(_activities));
   }
 
-  // 🔥 Obtener actividades (online u offline)
+  /// Trae las actividades desde el servidor usando el `userId` y
+  /// envía el token como cookie `access_token`.
   Future<void> fetchActivities() async {
-    if (_isOfflineMode) return; // 🔥 No recargar si está en modo offline
-
-    var connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult == ConnectivityResult.none) {
-      return; // Si no hay conexión, usa los datos en caché
+    // 1️⃣ Verifica conectividad
+    final conn = await Connectivity().checkConnectivity();
+    if (conn == ConnectivityResult.none) {
+      debugPrint('Sin conexión: no se cargarán actividades');
+      return;
     }
 
     _isLoading = true;
     notifyListeners();
 
-    try {
-      final response = await http.get(
-        Uri.parse('https://magicloops.dev/api/loop/259cb1d4-0a19-40cb-9523-2a67706902d8/run?parametro=valor'),
-      );
+    // 2️⃣ Obtiene credenciales
+    final prefs = await SharedPreferences.getInstance();
+    final String? userId = prefs.getString("userId");
+    final String? token  = prefs.getString("token");
+    if (userId == null || token == null) {
+      debugPrint('Faltan userId o token');
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
 
-      if (response.statusCode == 200) {
-        List<dynamic> data = json.decode(response.body);
-        _activities = data.map((item) {
+    try {
+      final uri = Uri.parse("http://192.168.18.117:3000/activity/internal/$userId");
+      final resp = await http.get(
+        uri,
+        headers: {
+          'Cookie': 'access_token=$token',
+        },
+      );
+      debugPrint("Respuesta: ${resp.statusCode} ${resp.body}");
+
+      if (resp.statusCode == 200) {
+        final List<dynamic> data = json.decode(resp.body);
+        _activities = data.map<Map<String, dynamic>>((item) {
+          // Parseo de fecha y hora
+          DateTime parsedDate = DateTime.parse(item['Activity_Date']);
+          String formattedDate = DateFormat('dd-MMM-yyyy').format(parsedDate);
+          String time = item['Activity_Time']?.toString().substring(0,5) ?? '';
+
           return {
-            'id': item['id'].toString(),
-            'title': item['title'],
-            'imageUrl': item['imageUrl'],
-            'location': item['location'],
-            'date': item['date'],
-            'time': item['time'],
-            'estado_registro': null,
+            'id'              : item['Activity_ID'].toString(),
+            'title'           : item['Activity_Name'] ?? '',
+            'imageUrl'        : (item['Documents'] != null && item['Documents'].isNotEmpty)
+                                ? item['Documents']
+                                : (['assets/entrega.png', 'assets/diligencia.png']..shuffle()).first,
+            'location'        : item['Activity_Location'] ?? '',
+            'date'            : formattedDate,
+            'time'            : time,
+            'estado_registro' : item['Activity_Status'] ?? '',
           };
         }).toList();
 
-        await _saveToCache(); // Guarda en caché
+        await _saveToCache();
+      } else {
+        debugPrint("Error HTTP ${resp.statusCode}");
       }
-    } catch (error) {
-      debugPrint("Error al obtener actividades: $error");
+    } catch (e) {
+      debugPrint("Error al obtener actividades: $e");
     }
 
     _isLoading = false;
     notifyListeners();
   }
 
-  // 🔥 Guardar una entrada/salida pendiente
+  /// Guarda una entrada/salida pendiente
   void addPendingUpdate(Map<String, dynamic> update) {
     _pendingUpdates.add(update);
     _savePendingUpdates();
   }
 
-  // 🔥 Guardar las actualizaciones pendientes en caché
   Future<void> _savePendingUpdates() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString("pending_updates", json.encode(_pendingUpdates));
+    await prefs.setString("pending_updates", json.encode(_pendingUpdates));
   }
 
-  // 🔥 Cargar tareas pendientes del caché
   Future<void> _loadPendingUpdates() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? cachedUpdates = prefs.getString("pending_updates");
-
-    if (cachedUpdates != null) {
-      _pendingUpdates = List<Map<String, dynamic>>.from(json.decode(cachedUpdates));
+    final String? cached = prefs.getString("pending_updates");
+    if (cached != null) {
+      _pendingUpdates = List<Map<String, dynamic>>.from(json.decode(cached));
     }
   }
 
-  // 🔥 Sincronizar tareas pendientes cuando vuelva el internet
+  /// Sincroniza las pendientes cuando hay conexión
   Future<void> syncPendingUpdates() async {
-    var connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult == ConnectivityResult.none) return;
+    final conn = await Connectivity().checkConnectivity();
+    if (conn == ConnectivityResult.none) return;
 
-    for (var update in _pendingUpdates) {
-      await _sendUpdateToServer(update);
+    for (var upd in _pendingUpdates) {
+      await _sendUpdateToServer(upd);
     }
-
     _pendingUpdates.clear();
     await _savePendingUpdates();
   }
 
-  // 🔥 Enviar datos al servidor
   Future<void> _sendUpdateToServer(Map<String, dynamic> update) async {
     try {
-      final response = await http.post(
-        Uri.parse('https://tu-api.com/actualizar'),
-        body: json.encode(update),
+      final resp = await http.post(
+        Uri.parse("http://localhost:3000/activity/update"),
         headers: {"Content-Type": "application/json"},
+        body: json.encode(update),
       );
-
-      if (response.statusCode == 200) {
-        debugPrint("Actualización sincronizada con éxito.");
+      if (resp.statusCode == 200) {
+        debugPrint("Update sincronizado");
       }
     } catch (e) {
-      debugPrint("Error al sincronizar datos: $e");
+      debugPrint("Error sync: $e");
     }
   }
 
-  // 🔥 Monitorear cambios en la conectividad
   void _monitorConnectivity() {
-    Connectivity().onConnectivityChanged.listen((connectivityResult) {
-      if (connectivityResult != ConnectivityResult.none) {
+    Connectivity().onConnectivityChanged.listen((conn) {
+      if (conn != ConnectivityResult.none) {
         syncPendingUpdates();
       }
     });
   }
 
-  // 🔥 Actualizar el estado de la actividad (entrada o salida)
+  /// ---- Funciones de estado interno ----
+
   void actualizarEstadoRegistro(String id, String estado) {
-    int index = _activities.indexWhere((activity) => activity['id'] == id);
-    if (index != -1) {
-      _activities[index]['estado_registro'] = estado;
-
-      if (_isOfflineMode) {
-        addPendingUpdate({
-          'id': id,
-          'estado_registro': estado,
-        });
-      }
-
+    final idx = _activities.indexWhere((a) => a['id'] == id);
+    if (idx != -1) {
+      _activities[idx]['estado_registro'] = estado;
       notifyListeners();
     }
   }
 
-  // 🔥 Verificar si ya registró entrada o salida
   String obtenerEstadoRegistro(String id) {
-    final actividad = _activities.firstWhere((activity) => activity['id'] == id, orElse: () => {});
-    return actividad.isNotEmpty ? actividad['estado_registro'] ?? '' : '';
+    final act = _activities.firstWhere(
+      (a) => a['id'] == id,
+      orElse: () => <String, dynamic>{},
+    );
+    return act.isNotEmpty ? (act['estado_registro'] ?? '') : '';
   }
 
-  // 🔥 Eliminar actividad (cuando se registra la salida)
   void eliminarActividad(String id) {
-    _activities.removeWhere((activity) => activity['id'].toString() == id);
+    _activities.removeWhere((a) => a['id'] == id);
     notifyListeners();
   }
 }

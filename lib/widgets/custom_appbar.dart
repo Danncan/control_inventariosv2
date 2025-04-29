@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../providers/activity_provider.dart';
 import '../views/login_screen.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showBackButton;
 
-  const CustomAppBar({super.key, required this.title, this.showBackButton = false});
+  const CustomAppBar({
+    super.key,
+    required this.title,
+    this.showBackButton = false,
+  });
 
-  /// Función para realizar el logout: limpia la sesión y navega al login.
+  /// Limpia todas las preferencias y vuelve al login
   Future<void> _logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove("token");
-    await prefs.remove("userId");
-    await prefs.remove("userEmail");
-    // Aquí puedes limpiar otros datos si es necesario
-
+    await prefs.clear(); // 🔥 Borra todas las SharedPreferences
+    if (!context.mounted) return; // Verifica si el contexto sigue montado
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
     );
   }
 
@@ -39,31 +38,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : null,
       actions: [
-        // Botón para alternar el modo offline/online.
-        Consumer<ActivityProvider>(
-          builder: (context, provider, child) {
-            return Switch(
-              value: provider.isOfflineMode,
-              onChanged: (value) {
-                provider.toggleOfflineMode(value);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(value ? "Modo offline activado" : "Modo online activado"),
-                    backgroundColor: value ? Colors.orange : Colors.green,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              },
-            );
-          },
+        // Ícono fijo para indicar “offline” (hasta que hayas añadido la lógica real)
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Icon(Icons.cloud_off, color: Colors.white),
         ),
         // Botón de logout
         IconButton(
           icon: const Icon(Icons.logout, color: Colors.white),
-          onPressed: () async {
-            await _logout(context);
-          },
+          onPressed: () => _logout(context),
         ),
       ],
     );
