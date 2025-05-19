@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
+
+import '../providers/activity_provider.dart';
 import '../widgets/custom_appbar.dart';
 import '../widgets/custom_bottom_nav.dart';
-import '../providers/activity_provider.dart';
 
 class RegisterExitScreen extends StatefulWidget {
   final String id;
@@ -25,54 +26,65 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
   final List<String> estados = ["Completada", "Suspendida", "Cancelada", "Pospuesta"];
   String? _estadoSeleccionado;
   final TextEditingController _resumenController = TextEditingController();
-  final String _ubicacion = "Ubicación no obtenida";
+  String _ubicacion = "Ubicación no obtenida";
   bool _isLoading = false;
 
-  // 📍 Función para registrar la salida y eliminarla
   Future<void> _registrarSalida() async {
     if (_estadoSeleccionado == null || _resumenController.text.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Por favor, complete todos los campos."), backgroundColor: Colors.red),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Por favor, complete todos los campos."),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
+      // 1️⃣ Obtener ubicación
       final position = await _obtenerUbicacion();
-
       if (!mounted) return;
 
-      final provider = Provider.of<ActivityProvider>(context, listen: false);
-      provider.actualizarEstadoRegistro(widget.id, "salida");
-      provider.eliminarActividad(widget.id); // 🔥 Elimina de la lista
+      setState(() {
+        _ubicacion = "Lat: ${position.latitude}, Lng: ${position.longitude}";
+      });
 
+      // 2️⃣ Registrar en backend o cache
+      await Provider.of<ActivityProvider>(context, listen: false).registerActivityRecord(
+        activityId: widget.id,
+        recordType: 'salida',
+        position: position,
+      );
+
+      // 3️⃣ Actualizar estado local y eliminar actividad
+      final provider = Provider.of<ActivityProvider>(context, listen: false);
+      provider.actualizarEstadoRegistro(widget.id, 'salida');
+      provider.eliminarActividad(widget.id);
+
+      // 4️⃣ Feedback al usuario
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Salida registrada con éxito en Lat: ${position.latitude}, Lng: ${position.longitude}"),
+          content: Text(
+            "Salida registrada con éxito en ${_ubicacion}\n"
+            "Estado: $_estadoSeleccionado\n"
+            "Resumen: ${_resumenController.text}",
+          ),
           backgroundColor: Colors.green,
         ),
       );
 
-      Navigator.pop(context);  // 🔥 Regresar al HomeScreen
+      Navigator.pop(context);
     } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-
-        _mostrarAlertaPermisos(context);
-      }
+      setState(() => _isLoading = false);
+      _mostrarAlertaPermisos(context);
     }
   }
 
-  // 📍 Obtener ubicación con manejo de permisos
   Future<Position> _obtenerUbicacion() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception("El servicio de ubicación está desactivado.");
-    }
+    if (!serviceEnabled) throw Exception("El servicio de ubicación está desactivado.");
 
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -81,7 +93,6 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
         throw Exception("Permiso de ubicación denegado.");
       }
     }
-
     if (permission == LocationPermission.deniedForever) {
       throw Exception("Los permisos están permanentemente denegados.");
     }
@@ -91,73 +102,77 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
     );
   }
 
-  // 🔥 Mostrar alerta cuando los permisos están denegados permanentemente
   void _mostrarAlertaPermisos(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext ctx) {
-        return AlertDialog(
-          title: const Text("Permisos de Ubicación Requeridos"),
-          content: const Text(
-              "Para registrar la salida, la aplicación necesita acceso a tu ubicación. "
-              "Por favor, ve a los ajustes del dispositivo y habilita los permisos de ubicación."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text("Cancelar"),
-            ),
-            TextButton(
-              onPressed: () async {
-                await Geolocator.openAppSettings();
-                Navigator.of(ctx).pop();
-              },
-              child: const Text("Abrir Ajustes"),
-            ),
-          ],
-        );
-      },
+      builder: (ctx) => AlertDialog(
+        title: const Text("Permisos de Ubicación Requeridos"),
+        content: const Text(
+          "Para registrar la salida, la aplicación necesita acceso a tu ubicación. "
+          "Por favor, ve a los ajustes del dispositivo y habilita los permisos de ubicación.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("Cancelar"),
+          ),
+          TextButton(
+            onPressed: () async {
+              await Geolocator.openAppSettings();
+              Navigator.of(ctx).pop();
+            },
+            child: const Text("Abrir Ajustes"),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Diligencia'),
+      appBar: const CustomAppBar(title: 'Registrar Salida', showBackButton: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "Registrar Salida",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
             Center(
               child: Image.asset(widget.imageUrl, height: 120, fit: BoxFit.contain),
             ),
+            const SizedBox(height: 24),
+            Text(
+              widget.title,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 20),
-
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Registro de Diligencia:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text(
+                    "Registro de Diligencia:",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     decoration: InputDecoration(
                       labelText: "Estado",
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
                     value: _estadoSeleccionado,
-                    items: estados.map((estado) {
-                      return DropdownMenuItem(value: estado, child: Text(estado));
-                    }).toList(),
-                    onChanged: (nuevoEstado) => setState(() => _estadoSeleccionado = nuevoEstado),
+                    items: estados
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (val) => setState(() => _estadoSeleccionado = val),
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -168,31 +183,43 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-
             Text(
               _ubicacion,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 10),
-
+            const SizedBox(height: 12),
             ElevatedButton(
               onPressed: _isLoading ? null : _registrarSalida,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,
                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               child: _isLoading
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text("Registrar Salida", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  : const Text(
+                      "Registrar Salida",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
             const SizedBox(height: 20),
           ],

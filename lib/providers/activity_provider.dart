@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -12,6 +13,8 @@ class ActivityProvider with ChangeNotifier {
 
   List<Map<String, dynamic>> get activities => _activities;
   bool get isLoading => _isLoading;
+  final String _baseUrl = "http://192.168.1.201:3000";
+
 
   ActivityProvider() {
     _loadCachedActivities();
@@ -60,7 +63,7 @@ class ActivityProvider with ChangeNotifier {
     }
 
     try {
-      final uri = Uri.parse("http://192.168.18.117:3000/activity/internal/$userId");
+      final uri = Uri.parse("$_baseUrl/activity/internal/$userId");
       final resp = await http.get(
         uri,
         headers: {
@@ -178,4 +181,58 @@ class ActivityProvider with ChangeNotifier {
     _activities.removeWhere((a) => a['id'] == id);
     notifyListeners();
   }
+
+  Future<void> registerActivityRecord({
+    required String activityId,
+    required String recordType, // "entrada" o "salida"
+    required Position position,
+  }) async {
+    final conn = await Connectivity().checkConnectivity();
+
+    // Construye el cuerpo del POST
+    final Map<String, dynamic> payload = {
+      'Activity_ID': int.parse(activityId),
+      'Activity_Record_Type': recordType,
+      'Activity_Record_Recorded_Time': DateTime.now().toIso8601String(),
+      'Activity_Record_Latitude': position.latitude,
+      'Activity_Record_Longitude': position.longitude,
+      'Activity_Record_On_Time': true,
+      'Activity_Record_Observation': ''
+    };
+
+    // Si NO hay conexión, lo guardamos para sincronizar luego
+    if (conn == ConnectivityResult.none) {
+      addPendingUpdate(payload);
+      actualizarEstadoRegistro(activityId, recordType);
+      return;
+    }
+
+    // Si hay conexión, hacemos el POST
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    try {
+      final resp = await http.post(
+        Uri.parse("$_baseUrl/activity-record"),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Cookie': 'access_token=$token',
+        },
+        body: json.encode(payload),
+      );
+
+      if (resp.statusCode == 201 || resp.statusCode == 200) {
+        debugPrint("✅ Activity record creado: ${resp.body}");
+        // Actualiza localmente la UI
+        actualizarEstadoRegistro(activityId, recordType);
+      } else {
+        debugPrint("⚠️ Error HTTP ${resp.statusCode}: ${resp.body}");
+        addPendingUpdate(payload);
+      }
+    } catch (e) {
+      debugPrint("❌ Error creando activity-record: $e");
+      addPendingUpdate(payload);
+    }
+  }
+
 }

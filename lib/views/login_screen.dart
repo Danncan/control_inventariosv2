@@ -52,7 +52,7 @@ class LoginScreenState extends State<LoginScreen> {
     }
 
     // Petición al servidor
-    final url = Uri.parse("http://192.168.18.117:3000/login"); // Ajusta tu URL real
+    final url = Uri.parse("http://192.168.1.201:3000/login"); // Ajusta tu URL real
     try {
       final response = await http.post(
         url,

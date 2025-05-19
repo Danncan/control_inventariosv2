@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/activity_provider.dart';
 import '../widgets/custom_appbar.dart';
 import '../widgets/detail_card.dart';
 import '../widgets/custom_bottom_nav.dart';
 
 class DiligenciaScreen extends StatefulWidget {
+  final String id;
   final String title;
   final String imageUrl;
   final String location;
@@ -14,12 +18,13 @@ class DiligenciaScreen extends StatefulWidget {
 
   const DiligenciaScreen({
     super.key,
+    required this.id,
     required this.title,
     required this.imageUrl,
     required this.location,
     required this.date,
     required this.time,
-    required this.onEntradaRegistrada, required id,
+    required this.onEntradaRegistrada,
   });
 
   @override
@@ -40,23 +45,30 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
 
       setState(() {
         _ubicacion = "Lat: ${position.latitude}, Lng: ${position.longitude}";
-        _isLoading = false;
       });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Entrada registrada con éxito."),
-            backgroundColor: Colors.green,
-          ),
-        );
-        widget.onEntradaRegistrada();
-        Navigator.pop(context);
-      }
+      // Llamada al provider para registrar en backend o cache
+      await Provider.of<ActivityProvider>(context, listen: false)
+          .registerActivityRecord(
+        activityId: widget.id,
+        recordType: 'entrada',
+        position: position,
+      );
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Entrada registrada con éxito."),
+          backgroundColor: Colors.green,
+        ),
+      );
+      widget.onEntradaRegistrada();
+      Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-
         _mostrarAlertaPermisos(context);
       }
     }
@@ -81,7 +93,9 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
     }
 
     return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+      ),
     );
   }
 
@@ -92,13 +106,12 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
         return AlertDialog(
           title: const Text("Permisos de Ubicación Requeridos"),
           content: const Text(
-              "Para registrar la entrada, la aplicación necesita acceso a tu ubicación. "
-              "Por favor, ve a los ajustes del dispositivo y habilita los permisos de ubicación."),
+            "Para registrar la entrada, la aplicación necesita acceso a tu ubicación. "
+            "Por favor, ve a los ajustes del dispositivo y habilita los permisos de ubicación.",
+          ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
+              onPressed: () => Navigator.of(ctx).pop(),
               child: const Text("Cancelar"),
             ),
             TextButton(
@@ -117,7 +130,7 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
   @override
   Widget build(BuildContext context) {
     final detallesIzquierda = {
-      "Tipo": "Juicio de Alimentos",
+      "Tipo": widget.title,
       "Ubicación": widget.location,
       "Fecha": widget.date,
       "Hora": widget.time,
@@ -139,34 +152,49 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
           children: [
             const Text(
               "Registrar Entrada:",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
             Image.asset(widget.imageUrl, height: 150, fit: BoxFit.contain),
             const SizedBox(height: 20),
-            DetailCard(leftDetails: detallesIzquierda, rightDetails: detallesDerecha),
+            DetailCard(
+              leftDetails: detallesIzquierda,
+              rightDetails: detallesDerecha,
+            ),
             const SizedBox(height: 20),
-
             Text(
               _ubicacion,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
-
             ElevatedButton(
               onPressed: _isLoading ? null : _registrarEntrada,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               child: _isLoading
                   ? const CircularProgressIndicator(color: Colors.white)
                   : const Text(
                       "Registrar Entrada",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
             ),
             const SizedBox(height: 40),
