@@ -13,7 +13,7 @@ class ActivityProvider with ChangeNotifier {
 
   List<Map<String, dynamic>> get activities => _activities;
   bool get isLoading => _isLoading;
-  final String _baseUrl = "http://192.168.1.201:3000";
+  final String _baseUrl = "http://192.168.18.104:3000";
 
 
   ActivityProvider() {
@@ -78,14 +78,12 @@ class ActivityProvider with ChangeNotifier {
           // Parseo de fecha y hora
           DateTime parsedDate = DateTime.parse(item['Activity_Date']);
           String formattedDate = DateFormat('dd-MMM-yyyy').format(parsedDate);
-          String time = item['Activity_Time']?.toString().substring(0,5) ?? '';
+          String time = item['Activity_StartTime']?.toString().substring(0,5) ?? '';
 
           return {
             'id'              : item['Activity_ID'].toString(),
-            'title'           : item['Activity_Name'] ?? '',
-            'imageUrl'        : (item['Documents'] != null && item['Documents'].isNotEmpty)
-                                ? item['Documents']
-                                : (['assets/entrega.png', 'assets/diligencia.png']..shuffle()).first,
+            'title'           : item['Activity_Type'] ?? '',
+            'imageUrl'        : (['assets/entrega.png', 'assets/diligencia.png']..shuffle()).first,
             'location'        : item['Activity_Location'] ?? '',
             'date'            : formattedDate,
             'time'            : time,

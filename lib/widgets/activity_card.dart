@@ -105,8 +105,9 @@ class ActivityCard extends StatelessWidget {
         activityDate.day == now.day;
     final esHoraPermitida =
         nowTime.isAfter(activityTime) || nowTime.isAtSameMomentAs(activityTime);
-    final limite = activityTime.add(const Duration(minutes: 30));
-    final fueraDeTiempo = nowTime.isAfter(limite);
+    // Verifica si la hora actual es al menos 30 minutos después de la hora de la actividad
+    // final limite = activityTime.add(const Duration(minutes: 30));
+    // final fueraDeTiempo = nowTime.isAfter(limite);
 
     final estado = provider.obtenerEstadoRegistro(id);
 
@@ -129,16 +130,16 @@ class ActivityCard extends StatelessWidget {
       );
       return;
     }
-    if (fueraDeTiempo) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              "No puedes registrar la entrada. Han pasado más de 30 minutos."),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+    // if (fueraDeTiempo) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(
+    //       content: Text(
+    //           "No puedes registrar la entrada. Han pasado más de 30 minutos."),
+    //       backgroundColor: Colors.red,
+    //     ),
+    //   );
+    //   return;
+    // }
 
     // Navegación según estado
     if (estado == "entrada") {

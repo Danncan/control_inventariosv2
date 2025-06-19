@@ -67,9 +67,7 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "Salida registrada con éxito en ${_ubicacion}\n"
-            "Estado: $_estadoSeleccionado\n"
-            "Resumen: ${_resumenController.text}",
+            "Salida registrada con éxito "
           ),
           backgroundColor: Colors.green,
         ),

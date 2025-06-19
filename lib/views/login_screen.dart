@@ -10,7 +10,7 @@ import 'forgotpasword_screen.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   LoginScreenState createState() => LoginScreenState();
@@ -52,7 +52,7 @@ class LoginScreenState extends State<LoginScreen> {
     }
 
     // Petición al servidor
-    final url = Uri.parse("http://192.168.1.201:3000/login"); // Ajusta tu URL real
+    final url = Uri.parse("http://192.168.18.104:3000/login"); // Ajusta tu URL real
     try {
       final response = await http.post(
         url,
