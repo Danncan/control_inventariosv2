@@ -155,30 +155,53 @@ class ActivityProvider with ChangeNotifier {
 
   /// Sincroniza las pendientes cuando hay conexión
   Future<void> syncPendingUpdates() async {
-    final conn = await Connectivity().checkConnectivity();
-    if (conn == ConnectivityResult.none) return;
+  final conn = await Connectivity().checkConnectivity();
+  if (conn == ConnectivityResult.none) return;
 
-    for (var upd in _pendingUpdates) {
-      await _sendUpdateToServer(upd);
+  debugPrint('Sincronizando ${_pendingUpdates.length} pendientes...');
+  List<Map<String, dynamic>> fallidos = [];
+
+  for (var upd in _pendingUpdates) {
+    final ok = await _sendUpdateToServer(upd);
+    if (!ok) {
+      fallidos.add(upd);
     }
-    _pendingUpdates.clear();
-    await _savePendingUpdates();
   }
 
-  Future<void> _sendUpdateToServer(Map<String, dynamic> update) async {
+  // Sólo los que no llegaron se quedan en la cola
+  _pendingUpdates = fallidos;
+  await _savePendingUpdates();
+}
+
+
+  Future<bool> _sendUpdateToServer(Map<String, dynamic> update) async {
+    // Recupera token
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
     try {
       final resp = await http.post(
-        Uri.parse("$_baseUrl/activity/update"),
-        headers: {"Content-Type": "application/json"},
+        Uri.parse("$_baseUrl/activity-record"),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Cookie': 'access_token=$token',
+        },
         body: json.encode(update),
       );
-      if (resp.statusCode == 200) {
-        debugPrint("Update sincronizado");
+
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        debugPrint("✅ Sync exitoso: Activity_ID=${update['Activity_ID']}");
+        return true;
+      } else {
+        debugPrint("⚠️ Sync fallido (${resp.statusCode}): ${resp.body}");
+        return false;
       }
     } catch (e) {
-      debugPrint("Error sync: $e");
+      debugPrint("❌ Error sync: $e");
+      return false;
     }
   }
+
 
   void _monitorConnectivity() {
     Connectivity().onConnectivityChanged.listen((conn) {

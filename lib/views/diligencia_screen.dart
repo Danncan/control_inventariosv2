@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
@@ -39,40 +40,49 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // 1️⃣ Obtén ubicación
       final position = await _obtenerUbicacion();
-
       if (!mounted) return;
-
       setState(() {
         _ubicacion = "Lat: ${position.latitude}, Lng: ${position.longitude}";
       });
 
-      // Llamada al provider para registrar en backend o cache
-      await Provider.of<ActivityProvider>(context, listen: false)
-          .registerActivityRecord(
+      // 2️⃣ Comprueba si estabas offline ANTES de la llamada
+      final provider = Provider.of<ActivityProvider>(context, listen: false);
+      final wasOffline = provider.isOffline ||
+          await Connectivity().checkConnectivity() == ConnectivityResult.none;
+
+      // 3️⃣ Llamada única al provider
+      await provider.registerActivityRecord(
         activityId: widget.id,
         recordType: 'entrada',
         position: position,
       );
 
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-
+      // 4️⃣ Mensaje acorde al modo
+      final mensaje = wasOffline
+          ? 'Entrada registrada en modo offline.'
+          : 'Entrada registrada con éxito';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Entrada registrada con éxito."),
-          backgroundColor: Colors.green,
+        SnackBar(
+          content: Text(mensaje),
+          backgroundColor: wasOffline ? Colors.orange : Colors.green,
         ),
       );
+
+      // 5️⃣ Notifica al padre y cierra
       widget.onEntradaRegistrada();
       Navigator.pop(context);
+
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
         _mostrarAlertaPermisos(context);
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
+
 
   Future<Position> _obtenerUbicacion() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();

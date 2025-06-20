@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
@@ -30,55 +31,60 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
   bool _isLoading = false;
 
   Future<void> _registrarSalida() async {
-    if (_estadoSeleccionado == null || _resumenController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Por favor, complete todos los campos."),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      // 1️⃣ Obtener ubicación
-      final position = await _obtenerUbicacion();
-      if (!mounted) return;
-
-      setState(() {
-        _ubicacion = "Lat: ${position.latitude}, Lng: ${position.longitude}";
-      });
-
-      // 2️⃣ Registrar en backend o cache
-      await Provider.of<ActivityProvider>(context, listen: false).registerActivityRecord(
-        activityId: widget.id,
-        recordType: 'salida',
-        position: position,
-      );
-
-      // 3️⃣ Actualizar estado local y eliminar actividad
-      final provider = Provider.of<ActivityProvider>(context, listen: false);
-      provider.actualizarEstadoRegistro(widget.id, 'salida');
-      provider.eliminarActividad(widget.id);
-
-      // 4️⃣ Feedback al usuario
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Salida registrada con éxito "
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      Navigator.pop(context);
-    } catch (e) {
-      setState(() => _isLoading = false);
-      _mostrarAlertaPermisos(context);
-    }
+  if (_estadoSeleccionado == null || _resumenController.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Por favor, complete todos los campos."),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
   }
+
+  setState(() => _isLoading = true);
+
+  try {
+    // 1️⃣ Obtener ubicación
+    final position = await _obtenerUbicacion();
+    if (!mounted) return;
+
+    // 2️⃣ Chequea offline antes de llamar al provider
+    final provider = Provider.of<ActivityProvider>(context, listen: false);
+    final wasOffline = provider.isOffline ||
+        await Connectivity().checkConnectivity() == ConnectivityResult.none;
+
+    // 3️⃣ Llamada al provider (crea o encola)
+    await provider.registerActivityRecord(
+      activityId: widget.id,
+      recordType: 'salida',
+      position: position,
+    );
+
+    // 4️⃣ Actualizar estado local y eliminar de la lista
+    provider.actualizarEstadoRegistro(widget.id, 'salida');
+    provider.eliminarActividad(widget.id);
+
+    // 5️⃣ Mostrar mensaje acorde al modo
+    final mensaje = wasOffline
+        ? 'Salida registrada en modo offline.'
+        : 'Salida registrada con éxito';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: wasOffline ? Colors.orange : Colors.green,
+      ),
+    );
+
+    // 6️⃣ Volver atrás
+    Navigator.pop(context);
+
+  } catch (e) {
+    _mostrarAlertaPermisos(context);
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
+
 
   Future<Position> _obtenerUbicacion() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();

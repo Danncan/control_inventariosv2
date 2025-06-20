@@ -282,7 +282,27 @@ class LoginScreenState extends State<LoginScreen> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
+
+        const SizedBox(height: 5),
+
+        // Términos y condiciones
+        Align(
+          alignment: Alignment.center,
+          child: TextButton(
+            onPressed: () {
+              // TODO: mostrar Términos y condiciones
+            },
+            child: const Text(
+              "Términos y condiciones",
+              style: TextStyle(
+                decoration: TextDecoration.underline,
+                color: Colors.teal,
+              ),
+            ),
+          ),
+        ),
       ],
+
     );
   }
 }
