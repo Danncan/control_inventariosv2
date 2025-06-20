@@ -29,12 +29,11 @@ class HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
 
-    // Escucha cambios de conectividad
+    // 1️⃣ Sigue escuchando cambios de conectividad…
     Connectivity().checkConnectivity().then((res) {
       setState(() => _hasConnection = res != ConnectivityResult.none);
     });
-    _connectivitySub =
-        Connectivity().onConnectivityChanged.listen((res) {
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((res) {
       final connected = res != ConnectivityResult.none;
       if (connected != _hasConnection) {
         setState(() => _hasConnection = connected);
@@ -50,10 +49,15 @@ class HomeScreenState extends State<HomeScreen> {
       }
     });
 
-    // Carga actividades UNA sola vez
-    final provider =
-        Provider.of<ActivityProvider>(context, listen: false);
-    provider.fetchActivities();
+    // 2️⃣ Solo tras el primer frame, chequeamos el flag offline y hacemos fetch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<ActivityProvider>(context, listen: false);
+      if (!provider.isOffline) {
+        provider.fetchActivities();
+      } else {
+        debugPrint('Modo offline activo: cargando actividades de cache');
+      }
+    });
   }
 
   @override
