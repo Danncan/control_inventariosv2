@@ -49,7 +49,8 @@ class ActivityCard extends StatelessWidget {
                 height: 80,
                 width: double.infinity,
                 color: Colors.grey.shade300,
-                child: const Center(child: Icon(Icons.image_not_supported, size: 40)),
+                child: const Center(
+                    child: Icon(Icons.image_not_supported, size: 40)),
               ),
             ),
           ),
@@ -60,7 +61,8 @@ class ActivityCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 4),
                 _buildDetail("Ubicación", location),
                 _buildDetail("Fecha", date),
@@ -74,12 +76,14 @@ class ActivityCard extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text("Ver más", style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text("Ver más",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -123,8 +127,8 @@ class ActivityCard extends StatelessWidget {
     if (!esHoraPermitida) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-              Text("No puedes registrar la entrada antes de la hora programada."),
+          content: Text(
+              "No puedes registrar la entrada antes de la hora programada."),
           backgroundColor: Colors.red,
         ),
       );

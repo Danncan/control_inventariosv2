@@ -56,7 +56,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         return AppBar(
           backgroundColor: Colors.teal,
           title: Text(title,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold)),
           leading: showBackButton
               ? IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),

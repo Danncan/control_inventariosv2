@@ -24,71 +24,75 @@ class RegisterExitScreen extends StatefulWidget {
 }
 
 class _RegisterExitScreenState extends State<RegisterExitScreen> {
-  final List<String> estados = ["Completada", "Suspendida", "Cancelada", "Pospuesta"];
+  final List<String> estados = [
+    "Completada",
+    "Suspendida",
+    "Cancelada",
+    "Pospuesta"
+  ];
   String? _estadoSeleccionado;
   final TextEditingController _resumenController = TextEditingController();
   String _ubicacion = "Ubicación no obtenida";
   bool _isLoading = false;
 
   Future<void> _registrarSalida() async {
-  if (_estadoSeleccionado == null || _resumenController.text.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Por favor, complete todos los campos."),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
+    if (_estadoSeleccionado == null || _resumenController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Por favor, complete todos los campos."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1️⃣ Obtener ubicación
+      final position = await _obtenerUbicacion();
+      if (!mounted) return;
+
+      // 2️⃣ Chequea offline antes de llamar al provider
+      final provider = Provider.of<ActivityProvider>(context, listen: false);
+      final wasOffline = provider.isOffline ||
+          await Connectivity().checkConnectivity() == ConnectivityResult.none;
+
+      // 3️⃣ Llamada al provider (crea o encola)
+      await provider.registerActivityRecord(
+        activityId: widget.id,
+        recordType: 'salida',
+        position: position,
+      );
+
+      // 4️⃣ Actualizar estado local y eliminar de la lista
+      provider.actualizarEstadoRegistro(widget.id, 'salida');
+      provider.eliminarActividad(widget.id);
+
+      // 5️⃣ Mostrar mensaje acorde al modo
+      final mensaje = wasOffline
+          ? 'Salida registrada en modo offline.'
+          : 'Salida registrada con éxito';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(mensaje),
+          backgroundColor: wasOffline ? Colors.orange : Colors.green,
+        ),
+      );
+
+      // 6️⃣ Volver atrás
+      Navigator.pop(context);
+    } catch (e) {
+      _mostrarAlertaPermisos(context);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
-
-  setState(() => _isLoading = true);
-
-  try {
-    // 1️⃣ Obtener ubicación
-    final position = await _obtenerUbicacion();
-    if (!mounted) return;
-
-    // 2️⃣ Chequea offline antes de llamar al provider
-    final provider = Provider.of<ActivityProvider>(context, listen: false);
-    final wasOffline = provider.isOffline ||
-        await Connectivity().checkConnectivity() == ConnectivityResult.none;
-
-    // 3️⃣ Llamada al provider (crea o encola)
-    await provider.registerActivityRecord(
-      activityId: widget.id,
-      recordType: 'salida',
-      position: position,
-    );
-
-    // 4️⃣ Actualizar estado local y eliminar de la lista
-    provider.actualizarEstadoRegistro(widget.id, 'salida');
-    provider.eliminarActividad(widget.id);
-
-    // 5️⃣ Mostrar mensaje acorde al modo
-    final mensaje = wasOffline
-        ? 'Salida registrada en modo offline.'
-        : 'Salida registrada con éxito';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensaje),
-        backgroundColor: wasOffline ? Colors.orange : Colors.green,
-      ),
-    );
-
-    // 6️⃣ Volver atrás
-    Navigator.pop(context);
-
-  } catch (e) {
-    _mostrarAlertaPermisos(context);
-  } finally {
-    if (mounted) setState(() => _isLoading = false);
-  }
-}
-
 
   Future<Position> _obtenerUbicacion() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) throw Exception("El servicio de ubicación está desactivado.");
+    if (!serviceEnabled)
+      throw Exception("El servicio de ubicación está desactivado.");
 
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -135,14 +139,16 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Registrar Salida', showBackButton: true),
+      appBar:
+          const CustomAppBar(title: 'Registrar Salida', showBackButton: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             const SizedBox(height: 8),
             Center(
-              child: Image.asset(widget.imageUrl, height: 120, fit: BoxFit.contain),
+              child: Image.asset(widget.imageUrl,
+                  height: 120, fit: BoxFit.contain),
             ),
             const SizedBox(height: 24),
             Text(
@@ -168,15 +174,17 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
                   DropdownButtonFormField<String>(
                     decoration: InputDecoration(
                       labelText: "Estado",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
                     ),
                     value: _estadoSeleccionado,
                     items: estados
                         .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                         .toList(),
-                    onChanged: (val) => setState(() => _estadoSeleccionado = val),
+                    onChanged: (val) =>
+                        setState(() => _estadoSeleccionado = val),
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -184,11 +192,12 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
                     maxLines: 3,
                     decoration: InputDecoration(
                       hintText: "Ingrese aquí un resumen...",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
                     ),
                   ),
                 ],
@@ -209,7 +218,8 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
               onPressed: _isLoading ? null : _registrarSalida,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

@@ -73,7 +73,6 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
       // 5️⃣ Notifica al padre y cierra
       widget.onEntradaRegistrada();
       Navigator.pop(context);
-
     } catch (e) {
       if (mounted) {
         _mostrarAlertaPermisos(context);
@@ -82,7 +81,6 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
 
   Future<Position> _obtenerUbicacion() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();

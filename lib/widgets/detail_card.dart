@@ -4,7 +4,8 @@ class DetailCard extends StatelessWidget {
   final Map<String, String> leftDetails;
   final Map<String, String> rightDetails;
 
-  const DetailCard({super.key, required this.leftDetails, required this.rightDetails});
+  const DetailCard(
+      {super.key, required this.leftDetails, required this.rightDetails});
 
   @override
   Widget build(BuildContext context) {

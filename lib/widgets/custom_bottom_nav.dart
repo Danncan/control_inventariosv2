@@ -20,7 +20,7 @@ class CustomBottomNav extends StatelessWidget {
         screen = const HomeScreen();
         break;
       case 2:
-        screen = const  ActivityListScreen();
+        screen = const ActivityListScreen();
         break;
       default:
         screen = const HomeScreen();
@@ -40,7 +40,8 @@ class CustomBottomNav extends StatelessWidget {
       unselectedItemColor: Colors.grey,
       onTap: (index) => _onItemTapped(context, index),
       items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: "Calendario"),        
+        BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today), label: "Calendario"),
         BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
         BottomNavigationBarItem(icon: Icon(Icons.list), label: "Listado"),
       ],

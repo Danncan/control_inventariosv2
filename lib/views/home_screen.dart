@@ -76,12 +76,10 @@ class HomeScreenState extends State<HomeScreen> {
     final today = DateFormat('dd-MMM-yyyy').format(DateTime.now());
 
     // Filtra listas
-    final actividadesHoy = activityProvider.activities
-        .where((a) => a['date'] == today)
-        .toList();
-    final actividadesProximas = activityProvider.activities
-        .where((a) => a['date'] != today)
-        .toList();
+    final actividadesHoy =
+        activityProvider.activities.where((a) => a['date'] == today).toList();
+    final actividadesProximas =
+        activityProvider.activities.where((a) => a['date'] != today).toList();
 
     Widget body;
     if (activityProvider.isLoading) {
@@ -95,8 +93,7 @@ class HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text("Actividades de Hoy",
-                style: TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold)),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             SizedBox(
               height: 280,

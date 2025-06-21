@@ -9,17 +9,17 @@ import 'package:intl/intl.dart';
 class ActivityProvider with ChangeNotifier {
   List<Map<String, dynamic>> _activities = [];
   bool _isLoading = false;
-  bool _isOffline = false;                     // ✅ Nuevo flag
+  bool _isOffline = false; // ✅ Nuevo flag
   List<Map<String, dynamic>> _pendingUpdates = [];
 
   List<Map<String, dynamic>> get activities => _activities;
   bool get isLoading => _isLoading;
-  bool get isOffline => _isOffline;            // ✅ Getter
+  bool get isOffline => _isOffline; // ✅ Getter
   final String _baseUrl = "http://192.168.18.104:3000";
 
   ActivityProvider() {
     _monitorConnectivity();
-    _loadOfflineFlag();                         // ✅ Carga modo offline
+    _loadOfflineFlag(); // ✅ Carga modo offline
     _loadCachedActivities();
     _loadPendingUpdates();
   }
@@ -71,68 +71,71 @@ class ActivityProvider with ChangeNotifier {
   /// Trae las actividades desde el servidor usando el `userId` y
   /// envía el token como cookie `access_token`.
   Future<void> fetchActivities() async {
-  // 🔹 Si estamos en modo offline, cargamos sólo del cache y no tocamos la red
-  if (_isOffline) {
-    debugPrint('Modo offline activo: cargando de cache');
-    return;
-  }
+    // 🔹 Si estamos en modo offline, cargamos sólo del cache y no tocamos la red
+    if (_isOffline) {
+      debugPrint('Modo offline activo: cargando de cache');
+      return;
+    }
 
-  // 🔹 Si no hay conexión y NO estamos en modo offline, abortamos
-  final conn = await Connectivity().checkConnectivity();
-  if (conn == ConnectivityResult.none) {
-    debugPrint('Sin conexión: no se cargarán actividades');
-    return;
-  }
+    // 🔹 Si no hay conexión y NO estamos en modo offline, abortamos
+    final conn = await Connectivity().checkConnectivity();
+    if (conn == ConnectivityResult.none) {
+      debugPrint('Sin conexión: no se cargarán actividades');
+      return;
+    }
 
-  _isLoading = true;
-  notifyListeners();
+    _isLoading = true;
+    notifyListeners();
 
-  // 2️⃣ Credenciales
-  final prefs = await SharedPreferences.getInstance();
-  final String? userId = prefs.getString("userId");
-  final String? token  = prefs.getString("token");
-  if (userId == null || token == null) {
-    debugPrint('Faltan userId o token');
+    // 2️⃣ Credenciales
+    final prefs = await SharedPreferences.getInstance();
+    final String? userId = prefs.getString("userId");
+    final String? token = prefs.getString("token");
+    if (userId == null || token == null) {
+      debugPrint('Faltan userId o token');
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final uri = Uri.parse("$_baseUrl/activity/internal/$userId");
+      final resp = await http.get(
+        uri,
+        headers: {'Cookie': 'access_token=$token'},
+      );
+
+      if (resp.statusCode == 200) {
+        final List<dynamic> data = json.decode(resp.body);
+        _activities = data.map<Map<String, dynamic>>((item) {
+          DateTime parsedDate = DateTime.parse(item['Activity_Date']);
+          String formattedDate = DateFormat('dd-MMM-yyyy').format(parsedDate);
+          String time =
+              item['Activity_StartTime']?.toString().substring(0, 5) ?? '';
+          return {
+            'id': item['Activity_ID'].toString(),
+            'title': item['Activity_Type'] ?? '',
+            'imageUrl': (['assets/entrega.png', 'assets/diligencia.png']
+                  ..shuffle())
+                .first,
+            'location': item['Activity_Location'] ?? '',
+            'date': formattedDate,
+            'time': time,
+            'estado_registro': item['Activity_Status'] ?? '',
+          };
+        }).toList();
+
+        await _saveToCache(); // 🔹 Actualiza el cache con la nueva lista
+      } else {
+        debugPrint("Error HTTP ${resp.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("Error al obtener actividades: $e");
+    }
+
     _isLoading = false;
     notifyListeners();
-    return;
   }
-
-  try {
-    final uri = Uri.parse("$_baseUrl/activity/internal/$userId");
-    final resp = await http.get(
-      uri,
-      headers: {'Cookie': 'access_token=$token'},
-    );
-
-    if (resp.statusCode == 200) {
-      final List<dynamic> data = json.decode(resp.body);
-      _activities = data.map<Map<String, dynamic>>((item) {
-        DateTime parsedDate = DateTime.parse(item['Activity_Date']);
-        String formattedDate = DateFormat('dd-MMM-yyyy').format(parsedDate);
-        String time = item['Activity_StartTime']?.toString().substring(0,5) ?? '';
-        return {
-          'id'              : item['Activity_ID'].toString(),
-          'title'           : item['Activity_Type'] ?? '',
-          'imageUrl'        : (['assets/entrega.png', 'assets/diligencia.png']..shuffle()).first,
-          'location'        : item['Activity_Location'] ?? '',
-          'date'            : formattedDate,
-          'time'            : time,
-          'estado_registro' : item['Activity_Status'] ?? '',
-        };
-      }).toList();
-
-      await _saveToCache();  // 🔹 Actualiza el cache con la nueva lista
-    } else {
-      debugPrint("Error HTTP ${resp.statusCode}");
-    }
-  } catch (e) {
-    debugPrint("Error al obtener actividades: $e");
-  }
-
-  _isLoading = false;
-  notifyListeners();
-}
 
   /// Guarda una entrada/salida pendiente
   void addPendingUpdate(Map<String, dynamic> update) {
@@ -155,24 +158,23 @@ class ActivityProvider with ChangeNotifier {
 
   /// Sincroniza las pendientes cuando hay conexión
   Future<void> syncPendingUpdates() async {
-  final conn = await Connectivity().checkConnectivity();
-  if (conn == ConnectivityResult.none) return;
+    final conn = await Connectivity().checkConnectivity();
+    if (conn == ConnectivityResult.none) return;
 
-  debugPrint('Sincronizando ${_pendingUpdates.length} pendientes...');
-  List<Map<String, dynamic>> fallidos = [];
+    debugPrint('Sincronizando ${_pendingUpdates.length} pendientes...');
+    List<Map<String, dynamic>> fallidos = [];
 
-  for (var upd in _pendingUpdates) {
-    final ok = await _sendUpdateToServer(upd);
-    if (!ok) {
-      fallidos.add(upd);
+    for (var upd in _pendingUpdates) {
+      final ok = await _sendUpdateToServer(upd);
+      if (!ok) {
+        fallidos.add(upd);
+      }
     }
+
+    // Sólo los que no llegaron se quedan en la cola
+    _pendingUpdates = fallidos;
+    await _savePendingUpdates();
   }
-
-  // Sólo los que no llegaron se quedan en la cola
-  _pendingUpdates = fallidos;
-  await _savePendingUpdates();
-}
-
 
   Future<bool> _sendUpdateToServer(Map<String, dynamic> update) async {
     // Recupera token
@@ -201,7 +203,6 @@ class ActivityProvider with ChangeNotifier {
       return false;
     }
   }
-
 
   void _monitorConnectivity() {
     Connectivity().onConnectivityChanged.listen((conn) {
@@ -244,13 +245,13 @@ class ActivityProvider with ChangeNotifier {
     final conn = await Connectivity().checkConnectivity();
 
     final payload = {
-      'Activity_ID'                  : int.parse(activityId),
-      'Activity_Record_Type'         : recordType,
+      'Activity_ID': int.parse(activityId),
+      'Activity_Record_Type': recordType,
       'Activity_Record_Recorded_Time': DateTime.now().toIso8601String(),
-      'Activity_Record_Latitude'     : position.latitude,
-      'Activity_Record_Longitude'    : position.longitude,
-      'Activity_Record_On_Time'      : true,
-      'Activity_Record_Observation'  : ''
+      'Activity_Record_Latitude': position.latitude,
+      'Activity_Record_Longitude': position.longitude,
+      'Activity_Record_On_Time': true,
+      'Activity_Record_Observation': ''
     };
 
     if (conn == ConnectivityResult.none || _isOffline) {

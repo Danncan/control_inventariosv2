@@ -19,7 +19,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString("token"); // Se espera que en el login almacenes el token
+    String? token = prefs
+        .getString("token"); // Se espera que en el login almacenes el token
 
     // Puedes incluir un pequeño delay para mostrar el splash
     await Future.delayed(const Duration(seconds: 1));

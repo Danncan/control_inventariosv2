@@ -29,42 +29,47 @@ class CalendarScreenState extends State<CalendarScreen> {
   void _loadActivities() async {
     final provider = context.read<ActivityProvider>();
     if (provider.activities.isEmpty) {
-      await provider.fetchActivities(); // 🔥 Solo carga si no hay datos en memoria
+      await provider
+          .fetchActivities(); // 🔥 Solo carga si no hay datos en memoria
     }
     _mapActivitiesToCalendar(provider.activities);
   }
 
- void _mapActivitiesToCalendar(List<Map<String, dynamic>> activities) {
+  void _mapActivitiesToCalendar(List<Map<String, dynamic>> activities) {
     Map<DateTime, List<Map<String, String>>> mappedEvents = {};
 
     for (var activity in activities) {
       // 🔥 Convertir la fecha correctamente
-      DateTime activityDate = DateFormat("dd-MMM-yyyy").parse(activity['date']!);
+      DateTime activityDate =
+          DateFormat("dd-MMM-yyyy").parse(activity['date']!);
 
       // 🔥 Normalizar la fecha (establecerla a medianoche en UTC)
-      DateTime normalizedDate = DateTime.utc(activityDate.year, activityDate.month, activityDate.day);
+      DateTime normalizedDate =
+          DateTime.utc(activityDate.year, activityDate.month, activityDate.day);
 
-      print("Original: $activityDate -> Normalized: $normalizedDate"); // 🔍 Debugging
+      print(
+          "Original: $activityDate -> Normalized: $normalizedDate"); // 🔍 Debugging
 
       // Agregar la actividad al mapa de eventos
       mappedEvents.putIfAbsent(normalizedDate, () => []).add(
-        activity.map((key, value) => MapEntry(key, value.toString())),
-      );
+            activity.map((key, value) => MapEntry(key, value.toString())),
+          );
     }
 
     setState(() {
       _events = mappedEvents;
       _isLoading = false;
     });
-}
-
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'Calendario'),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator()) // 🔥 Muestra un loader mientras carga
+          ? const Center(
+              child:
+                  CircularProgressIndicator()) // 🔥 Muestra un loader mientras carga
           : Column(
               children: [
                 // 📅 **Calendario de Actividades**
@@ -86,7 +91,8 @@ class CalendarScreenState extends State<CalendarScreen> {
                       color: Colors.teal,
                       shape: BoxShape.circle,
                     ),
-                    markersAlignment: Alignment.bottomCenter, // 🔥 Alinea los marcadores
+                    markersAlignment:
+                        Alignment.bottomCenter, // 🔥 Alinea los marcadores
                   ),
                   headerStyle: const HeaderStyle(
                     formatButtonVisible: false,
@@ -101,7 +107,8 @@ class CalendarScreenState extends State<CalendarScreen> {
                       ? const Center(
                           child: Text(
                             "Selecciona un día para ver actividades.",
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         )
                       : ListView.builder(

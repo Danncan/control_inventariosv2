@@ -62,7 +62,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
 
       if (response.statusCode == 200) {
-        _showSnackBar("Revisa tu correo para ver el código de verificación.", Colors.green);
+        _showSnackBar("Revisa tu correo para ver el código de verificación.",
+            Colors.green);
         setState(() {
           _step = 2;
         });
@@ -84,7 +85,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _codeResentCount++;
       await _submitEmail();
     } else {
-      _showSnackBar("Límite de reenvíos alcanzado. Intenta más tarde.", Colors.red);
+      _showSnackBar(
+          "Límite de reenvíos alcanzado. Intenta más tarde.", Colors.red);
     }
   }
 
@@ -107,7 +109,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
 
       if (response.statusCode == 200) {
-        _showSnackBar("Código verificado, ingresa tu nueva contraseña.", Colors.green);
+        _showSnackBar(
+            "Código verificado, ingresa tu nueva contraseña.", Colors.green);
         setState(() {
           _step = 3;
         });
@@ -154,13 +157,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
 
       if (response.statusCode == 200) {
-        _showSnackBar("Tu contraseña ha sido actualizada correctamente!", Colors.green);
+        _showSnackBar(
+            "Tu contraseña ha sido actualizada correctamente!", Colors.green);
         setState(() {
           _step = 4;
         });
       } else {
         final errorData = jsonDecode(response.body);
-        final errorMsg = errorData["message"] ?? "Error al actualizar la contraseña.";
+        final errorMsg =
+            errorData["message"] ?? "Error al actualizar la contraseña.";
         _showSnackBar(errorMsg, Colors.red);
       }
     } catch (e) {
@@ -245,7 +250,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
           // 2) Capa con color + blur (Frosted Glass)
           Container(
-          color: Colors.black.withAlpha((0.4 * 255).toInt()),          ),
+            color: Colors.black.withAlpha((0.4 * 255).toInt()),
+          ),
 
           // 3) Contenido centrado
           Center(
@@ -255,10 +261,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 // Tarjeta con borde redondeado y algo de transparencia
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withAlpha((0.9 * 255).toInt()),                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.white.withAlpha((0.9 * 255).toInt()),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withAlpha((0.2 * 255).toInt()), // Ajuste similar para la sombra
+                      color: Colors.black.withAlpha(
+                          (0.2 * 255).toInt()), // Ajuste similar para la sombra
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -324,7 +332,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         TextField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
-          decoration: _inputDecoration("Correo Electrónico", Icons.email_outlined),
+          decoration:
+              _inputDecoration("Correo Electrónico", Icons.email_outlined),
         ),
         const SizedBox(height: 24),
         Row(
@@ -356,7 +365,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         TextField(
           controller: _codeController,
           keyboardType: TextInputType.number,
-          decoration: _inputDecoration("Código de Verificación", Icons.verified_user_outlined),
+          decoration: _inputDecoration(
+              "Código de Verificación", Icons.verified_user_outlined),
         ),
         const SizedBox(height: 16),
         Row(
@@ -412,7 +422,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         TextField(
           controller: _repeatPasswordController,
           obscureText: true,
-          decoration: _inputDecoration("Confirmar Contraseña", Icons.lock_reset),
+          decoration:
+              _inputDecoration("Confirmar Contraseña", Icons.lock_reset),
         ),
         const SizedBox(height: 16),
         Row(
@@ -444,7 +455,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 16),
         const Text(
           "¡Tu contraseña ha sido actualizada correctamente!",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
+          style: TextStyle(
+              fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),

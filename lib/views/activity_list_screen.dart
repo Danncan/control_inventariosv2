@@ -24,7 +24,8 @@ class ActivityListScreen extends StatelessWidget {
 
             if (provider.activities.isEmpty) {
               return const Center(
-                child: Text("No hay actividades disponibles.", style: TextStyle(fontSize: 16)),
+                child: Text("No hay actividades disponibles.",
+                    style: TextStyle(fontSize: 16)),
               );
             }
 
@@ -34,15 +35,22 @@ class ActivityListScreen extends StatelessWidget {
                 final activity = provider.activities[index];
 
                 // 🔹 Convertir fechas y horas
-                DateTime activityDate = DateFormat("dd-MMM-yyyy").parse(activity['date']);
+                DateTime activityDate =
+                    DateFormat("dd-MMM-yyyy").parse(activity['date']);
                 DateTime now = DateTime.now();
-                DateTime activityTime = DateFormat("HH:mm").parse(activity['time']);
-                DateTime nowTime = DateFormat("HH:mm").parse("${now.hour}:${now.minute}");
+                DateTime activityTime =
+                    DateFormat("HH:mm").parse(activity['time']);
+                DateTime nowTime =
+                    DateFormat("HH:mm").parse("${now.hour}:${now.minute}");
 
                 // 🔹 Validaciones
-                bool esHoy = activityDate.year == now.year && activityDate.month == now.month && activityDate.day == now.day;
-                bool esHoraPermitida = nowTime.isAfter(activityTime.subtract(const Duration(minutes: 30))) &&
-                                       nowTime.isBefore(activityTime.add(const Duration(minutes: 30)));
+                bool esHoy = activityDate.year == now.year &&
+                    activityDate.month == now.month &&
+                    activityDate.day == now.day;
+                bool esHoraPermitida = nowTime.isAfter(
+                        activityTime.subtract(const Duration(minutes: 30))) &&
+                    nowTime.isBefore(
+                        activityTime.add(const Duration(minutes: 30)));
                 String estado = provider.obtenerEstadoRegistro(activity['id']);
 
                 return Padding(
@@ -66,32 +74,38 @@ class ActivityListScreen extends StatelessWidget {
                               width: 60,
                               height: 60,
                               color: Colors.grey.shade300,
-                              child: const Icon(Icons.image_not_supported, size: 30),
+                              child: const Icon(Icons.image_not_supported,
+                                  size: 30),
                             );
                           },
                         ),
                       ),
                       title: Text(
                         activity['title']!,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text("📍 ${activity['location']}"),
-                          Text("📅 ${activity['date']} - 🕒 ${activity['time']}"),
+                          Text(
+                              "📅 ${activity['date']} - 🕒 ${activity['time']}"),
                         ],
                       ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.arrow_forward, color: Colors.teal),
+                        icon:
+                            const Icon(Icons.arrow_forward, color: Colors.teal),
                         onPressed: () {
                           if (!esHoy) {
-                            _mostrarAlerta(context, "Solo puedes acceder a actividades del día de hoy.");
+                            _mostrarAlerta(context,
+                                "Solo puedes acceder a actividades del día de hoy.");
                             return;
                           }
 
                           if (!esHoraPermitida) {
-                            _mostrarAlerta(context, "No puedes registrar la entrada fuera del rango de 30 minutos antes o después de la hora programada.");
+                            _mostrarAlerta(context,
+                                "No puedes registrar la entrada fuera del rango de 30 minutos antes o después de la hora programada.");
                             return;
                           }
 
@@ -119,8 +133,10 @@ class ActivityListScreen extends StatelessWidget {
                                   date: activity['date'],
                                   time: activity['time'],
                                   onEntradaRegistrada: () {
-                                    Provider.of<ActivityProvider>(context, listen: false)
-                                        .actualizarEstadoRegistro(activity['id'], "entrada");
+                                    Provider.of<ActivityProvider>(context,
+                                            listen: false)
+                                        .actualizarEstadoRegistro(
+                                            activity['id'], "entrada");
                                   },
                                 ),
                               ),

@@ -23,7 +23,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Gestión de Actividades',
       theme: ThemeData(primarySwatch: Colors.teal),
-      home: const SplashScreen(), // Arranca en SplashScreen para verificar el login
+      home:
+          const SplashScreen(), // Arranca en SplashScreen para verificar el login
     );
   }
 }

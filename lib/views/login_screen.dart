@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';  // <-- nuevo
-
+import 'package:connectivity_plus/connectivity_plus.dart'; // <-- nuevo
 
 import 'forgotpasword_screen.dart';
 import 'home_screen.dart';
@@ -34,8 +33,8 @@ class LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);  
-    
+    setState(() => _isLoading = true);
+
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -52,7 +51,8 @@ class LoginScreenState extends State<LoginScreen> {
     }
 
     // Petición al servidor
-    final url = Uri.parse("http://192.168.18.104:3000/login"); // Ajusta tu URL real
+    final url =
+        Uri.parse("http://192.168.18.104:3000/login"); // Ajusta tu URL real
     try {
       final response = await http.post(
         url,
@@ -78,7 +78,7 @@ class LoginScreenState extends State<LoginScreen> {
           );
           return;
         }
-        print( "Token recibido: $token");
+        print("Token recibido: $token");
         // Decodificar token
         final decodedToken = JwtDecoder.decode(token);
         final userId = decodedToken["id"];
@@ -168,7 +168,8 @@ class LoginScreenState extends State<LoginScreen> {
             // 3) Contenido centrado (tarjeta)
             Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
                 child: Container(
                   width: 380, // Ajusta a tu gusto
                   padding: const EdgeInsets.all(24),
@@ -243,7 +244,8 @@ class LoginScreenState extends State<LoginScreen> {
             filled: true,
             fillColor: Colors.grey.shade100,
             suffixIcon: IconButton(
-              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+              icon: Icon(
+                  _obscurePassword ? Icons.visibility_off : Icons.visibility),
               onPressed: () {
                 setState(() => _obscurePassword = !_obscurePassword);
               },
@@ -260,7 +262,8 @@ class LoginScreenState extends State<LoginScreen> {
               debugPrint("🔹 Opción '¿Olvidaste tu contraseña?' seleccionada.");
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const ForgotPasswordScreen()),
               );
             },
             child: const Text("¿Olvidaste tu contraseña?"),
@@ -275,7 +278,8 @@ class LoginScreenState extends State<LoginScreen> {
             backgroundColor: Colors.teal,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           child: const Text(
             "Login",
@@ -302,7 +306,6 @@ class LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ],
-
     );
   }
 }
