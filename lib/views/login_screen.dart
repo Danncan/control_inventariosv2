@@ -85,7 +85,7 @@ class LoginScreenState extends State<LoginScreen> {
         print("Token decodificado: $decodedToken");
         print("ID de usuario: $userId");
         print("Email de usuario: $userEmail");
-        
+
         // 🔐 Guardar token de forma SEGURA y datos no sensibles en SharedPreferences
         final storage = SecureStorageService();
         await storage.saveToken(token); // 🔒 Token seguro

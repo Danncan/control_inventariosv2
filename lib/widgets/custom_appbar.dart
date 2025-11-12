@@ -17,7 +17,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// Limpia todas las preferencias (seguras y no seguras) y vuelve al login
   Future<void> _logout(BuildContext context) async {
     final storage = SecureStorageService();
-    await storage.clearAll(); // 🔐 Limpia TODO: token seguro + SharedPreferences
+    await storage
+        .clearAll(); // 🔐 Limpia TODO: token seguro + SharedPreferences
     if (!context.mounted) return;
     Navigator.pushReplacement(
       context,

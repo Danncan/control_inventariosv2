@@ -39,7 +39,7 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
 
   Future<void> _registrarEntrada() async {
     if (_isLoading) return; // Evita múltiples clicks
-    
+
     setState(() => _isLoading = true);
 
     try {
@@ -56,9 +56,10 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
       );
 
       if (!mounted) return;
-      
+
       setState(() {
-        _ubicacion = "Lat: ${position.latitude.toStringAsFixed(6)}, Lng: ${position.longitude.toStringAsFixed(6)}";
+        _ubicacion =
+            "Lat: ${position.latitude.toStringAsFixed(6)}, Lng: ${position.longitude.toStringAsFixed(6)}";
       });
 
       // 2️⃣ Comprueba si estabas offline ANTES de la llamada
@@ -79,7 +80,7 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
       final mensaje = wasOffline
           ? 'Entrada registrada en modo offline.'
           : 'Entrada registrada con éxito';
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mensaje),
@@ -90,7 +91,7 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
 
       // 5️⃣ Notifica al padre y cierra
       widget.onEntradaRegistrada();
-      
+
       if (mounted) {
         Navigator.pop(context);
       }
@@ -119,7 +120,8 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
     // 1️⃣ Verifica que el servicio de ubicación esté habilitado
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      throw Exception("El servicio de ubicación está desactivado. Por favor, actívalo en la configuración de tu dispositivo.");
+      throw Exception(
+          "El servicio de ubicación está desactivado. Por favor, actívalo en la configuración de tu dispositivo.");
     }
 
     // 2️⃣ Verifica y solicita permisos
@@ -127,12 +129,14 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        throw Exception("Permiso de ubicación denegado. Por favor, habilita los permisos en la configuración.");
+        throw Exception(
+            "Permiso de ubicación denegado. Por favor, habilita los permisos en la configuración.");
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      throw Exception("Los permisos de ubicación están permanentemente denegados. Debes habilitarlos manualmente en la configuración.");
+      throw Exception(
+          "Los permisos de ubicación están permanentemente denegados. Debes habilitarlos manualmente en la configuración.");
     }
 
     // 3️⃣ Obtiene la ubicación con configuración optimizada
@@ -162,7 +166,8 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text("Cerrar"),
             ),
-            if (mensaje.contains("permanentemente") || mensaje.contains("configuración"))
+            if (mensaje.contains("permanentemente") ||
+                mensaje.contains("configuración"))
               TextButton(
                 onPressed: () async {
                   await Geolocator.openLocationSettings();
