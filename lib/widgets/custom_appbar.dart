@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/secure_storage_service.dart';
 import '../views/login_screen.dart';
 import '../providers/activity_provider.dart';
 
@@ -14,9 +14,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showBackButton = false,
   });
 
+  /// Limpia todas las preferencias (seguras y no seguras) y vuelve al login
   Future<void> _logout(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    final storage = SecureStorageService();
+    await storage.clearAll(); // 🔐 Limpia TODO: token seguro + SharedPreferences
     if (!context.mounted) return;
     Navigator.pushReplacement(
       context,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/secure_storage_service.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 
@@ -18,12 +18,14 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs
-        .getString("token"); // Se espera que en el login almacenes el token
+    // 🔐 Leer token de forma segura
+    final storage = SecureStorageService();
+    String? token = await storage.getToken();
 
     // Puedes incluir un pequeño delay para mostrar el splash
     await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
       // Si existe el token, redirige al HomeScreen

@@ -2,9 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:connectivity_plus/connectivity_plus.dart'; // <-- nuevo
-
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../services/secure_storage_service.dart';
 import 'forgotpasword_screen.dart';
 import 'home_screen.dart';
 
@@ -52,7 +51,7 @@ class LoginScreenState extends State<LoginScreen> {
 
     // Petición al servidor
     final url =
-        Uri.parse("http://192.168.18.104:3000/login"); // Ajusta tu URL real
+        Uri.parse("http://192.168.18.117:3000/login"); // Ajusta tu URL real
     try {
       final response = await http.post(
         url,
@@ -86,14 +85,15 @@ class LoginScreenState extends State<LoginScreen> {
         print("Token decodificado: $decodedToken");
         print("ID de usuario: $userId");
         print("Email de usuario: $userEmail");
-        // Guardar token y datos en SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString("token", token);
+        
+        // 🔐 Guardar token de forma SEGURA y datos no sensibles en SharedPreferences
+        final storage = SecureStorageService();
+        await storage.saveToken(token); // 🔒 Token seguro
         if (userId != null) {
-          await prefs.setString("userId", userId.toString());
+          await storage.saveUserId(userId.toString());
         }
         if (userEmail != null) {
-          await prefs.setString("userEmail", userEmail);
+          await storage.saveUserEmail(userEmail);
         }
 
         if (!mounted) return;

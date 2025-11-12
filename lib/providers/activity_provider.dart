@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:intl/intl.dart';
+import '../services/secure_storage_service.dart';
 
 class ActivityProvider with ChangeNotifier {
   List<Map<String, dynamic>> _activities = [];
@@ -15,7 +16,7 @@ class ActivityProvider with ChangeNotifier {
   List<Map<String, dynamic>> get activities => _activities;
   bool get isLoading => _isLoading;
   bool get isOffline => _isOffline; // ✅ Getter
-  final String _baseUrl = "http://192.168.18.104:3000";
+  final String _baseUrl = "http://192.168.18.117:3000";
 
   ActivityProvider() {
     _monitorConnectivity();
@@ -88,9 +89,10 @@ class ActivityProvider with ChangeNotifier {
     notifyListeners();
 
     // 2️⃣ Credenciales
+    final storage = SecureStorageService();
     final prefs = await SharedPreferences.getInstance();
     final String? userId = prefs.getString("userId");
-    final String? token = prefs.getString("token");
+    final String? token = await storage.getToken(); // 🔐 Token seguro
     if (userId == null || token == null) {
       debugPrint('Faltan userId o token');
       _isLoading = false;
@@ -177,9 +179,9 @@ class ActivityProvider with ChangeNotifier {
   }
 
   Future<bool> _sendUpdateToServer(Map<String, dynamic> update) async {
-    // Recupera token
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    // Recupera token de forma segura
+    final storage = SecureStorageService();
+    final token = await storage.getToken(); // 🔐 Token seguro
 
     try {
       final resp = await http.post(
@@ -262,8 +264,8 @@ class ActivityProvider with ChangeNotifier {
     }
 
     // Online normal
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final storage = SecureStorageService();
+    final token = await storage.getToken(); // 🔐 Token seguro
     try {
       final resp = await http.post(
         Uri.parse("$_baseUrl/activity-record"),

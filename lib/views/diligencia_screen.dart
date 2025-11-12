@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -37,14 +38,27 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
   bool _isLoading = false;
 
   Future<void> _registrarEntrada() async {
+    if (_isLoading) return; // Evita múltiples clicks
+    
     setState(() => _isLoading = true);
 
     try {
-      // 1️⃣ Obtén ubicación
-      final position = await _obtenerUbicacion();
+      // 1️⃣ Obtén ubicación con timeout y mejor manejo de errores
+      if (mounted) {
+        setState(() => _ubicacion = "Obteniendo ubicación...");
+      }
+
+      final position = await _obtenerUbicacion().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception("Tiempo de espera agotado. Intenta nuevamente.");
+        },
+      );
+
       if (!mounted) return;
+      
       setState(() {
-        _ubicacion = "Lat: ${position.latitude}, Lng: ${position.longitude}";
+        _ubicacion = "Lat: ${position.latitude.toStringAsFixed(6)}, Lng: ${position.longitude.toStringAsFixed(6)}";
       });
 
       // 2️⃣ Comprueba si estabas offline ANTES de la llamada
@@ -59,23 +73,42 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
         position: position,
       );
 
+      if (!mounted) return;
+
       // 4️⃣ Mensaje acorde al modo
       final mensaje = wasOffline
           ? 'Entrada registrada en modo offline.'
           : 'Entrada registrada con éxito';
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mensaje),
           backgroundColor: wasOffline ? Colors.orange : Colors.green,
+          duration: const Duration(seconds: 2),
         ),
       );
 
       // 5️⃣ Notifica al padre y cierra
       widget.onEntradaRegistrada();
-      Navigator.pop(context);
-    } catch (e) {
+      
       if (mounted) {
-        _mostrarAlertaPermisos(context);
+        Navigator.pop(context);
+      }
+    } on TimeoutException catch (_) {
+      if (mounted) {
+        setState(() => _ubicacion = "Tiempo de espera agotado");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("No se pudo obtener la ubicación. Tiempo agotado."),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error en _registrarEntrada: $e");
+      if (mounted) {
+        setState(() => _ubicacion = "Error: ${e.toString()}");
+        _mostrarAlertaError(context, e.toString());
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -83,52 +116,60 @@ class DiligenciaScreenState extends State<DiligenciaScreen> {
   }
 
   Future<Position> _obtenerUbicacion() async {
+    // 1️⃣ Verifica que el servicio de ubicación esté habilitado
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      throw Exception("El servicio de ubicación está desactivado.");
+      throw Exception("El servicio de ubicación está desactivado. Por favor, actívalo en la configuración de tu dispositivo.");
     }
 
-    var permission = await Geolocator.checkPermission();
+    // 2️⃣ Verifica y solicita permisos
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        throw Exception("Permiso de ubicación denegado.");
+        throw Exception("Permiso de ubicación denegado. Por favor, habilita los permisos en la configuración.");
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      throw Exception("Los permisos están permanentemente denegados.");
+      throw Exception("Los permisos de ubicación están permanentemente denegados. Debes habilitarlos manualmente en la configuración.");
     }
 
-    return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-      ),
-    );
+    // 3️⃣ Obtiene la ubicación con configuración optimizada
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 0,
+          timeLimit: Duration(seconds: 30),
+        ),
+      );
+    } catch (e) {
+      debugPrint("Error obteniendo posición: $e");
+      throw Exception("No se pudo obtener la ubicación: ${e.toString()}");
+    }
   }
 
-  void _mostrarAlertaPermisos(BuildContext context) {
+  void _mostrarAlertaError(BuildContext context, String mensaje) {
     showDialog(
       context: context,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          title: const Text("Permisos de Ubicación Requeridos"),
-          content: const Text(
-            "Para registrar la entrada, la aplicación necesita acceso a tu ubicación. "
-            "Por favor, ve a los ajustes del dispositivo y habilita los permisos de ubicación.",
-          ),
+          title: const Text("Error de Ubicación"),
+          content: Text(mensaje),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text("Cancelar"),
+              child: const Text("Cerrar"),
             ),
-            TextButton(
-              onPressed: () async {
-                await Geolocator.openAppSettings();
-                Navigator.of(ctx).pop();
-              },
-              child: const Text("Abrir Ajustes"),
-            ),
+            if (mensaje.contains("permanentemente") || mensaje.contains("configuración"))
+              TextButton(
+                onPressed: () async {
+                  await Geolocator.openLocationSettings();
+                  if (ctx.mounted) Navigator.of(ctx).pop();
+                },
+                child: const Text("Abrir Configuración"),
+              ),
           ],
         );
       },
