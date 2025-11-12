@@ -16,7 +16,7 @@ class ActivityProvider with ChangeNotifier {
   List<Map<String, dynamic>> get activities => _activities;
   bool get isLoading => _isLoading;
   bool get isOffline => _isOffline; // ✅ Getter
-  final String _baseUrl = "http://192.168.18.117:3000";
+  final String _baseUrl = "http://172.31.24.71:5052";
 
   ActivityProvider() {
     _monitorConnectivity();
