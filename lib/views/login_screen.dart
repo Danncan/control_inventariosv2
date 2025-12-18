@@ -51,7 +51,7 @@ class LoginScreenState extends State<LoginScreen> {
 
     // Petición al servidor
     final url =
-        Uri.parse("http://172.31.24.71:5052/login"); // Ajusta tu URL real
+        Uri.parse("http://192.168.18.117:3000/login"); // Ajusta tu URL real
     try {
       final response = await http.post(
         url,
@@ -255,8 +255,7 @@ class LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 12),
 
         // ¿Olvidaste tu contraseña?
-        Align(
-          alignment: Alignment.centerRight,
+        Center(
           child: TextButton(
             onPressed: () {
               debugPrint("🔹 Opción '¿Olvidaste tu contraseña?' seleccionada.");

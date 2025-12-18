@@ -58,11 +58,13 @@ class _RegisterExitScreenState extends State<RegisterExitScreen> {
       final wasOffline = provider.isOffline ||
           await Connectivity().checkConnectivity() == ConnectivityResult.none;
 
-      // 3️⃣ Llamada al provider (crea o encola)
+      // 3️⃣ Llamada al provider (crea o encola) con estado y observación
       await provider.registerActivityRecord(
         activityId: widget.id,
         recordType: 'salida',
         position: position,
+        activityStatus: _estadoSeleccionado, // 🔥 Envía el estado seleccionado
+        observation: _resumenController.text, // 🔥 Envía el resumen/observación
       );
 
       // 4️⃣ Actualizar estado local y eliminar de la lista

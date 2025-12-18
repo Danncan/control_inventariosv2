@@ -85,7 +85,7 @@ class HomeScreenState extends State<HomeScreen> {
     if (activityProvider.isLoading) {
       body = const Center(child: CircularProgressIndicator());
     } else if (activityProvider.activities.isEmpty) {
-      body = const Center(child: Text("No hay actividades disponibles"));
+      body = const Center(child: Text("No hay actividades disponibles Home"));
     } else {
       body = Padding(
         padding: const EdgeInsets.all(16),

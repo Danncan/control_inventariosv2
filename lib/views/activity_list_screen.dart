@@ -24,7 +24,7 @@ class ActivityListScreen extends StatelessWidget {
 
             if (provider.activities.isEmpty) {
               return const Center(
-                child: Text("No hay actividades disponibles.",
+                child: Text("No hay actividades disponibles List.",
                     style: TextStyle(fontSize: 16)),
               );
             }

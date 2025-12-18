@@ -16,7 +16,7 @@ class ActivityProvider with ChangeNotifier {
   List<Map<String, dynamic>> get activities => _activities;
   bool get isLoading => _isLoading;
   bool get isOffline => _isOffline; // ✅ Getter
-  final String _baseUrl = "http://172.31.24.71:5052";
+  final String _baseUrl = "http://192.168.18.117:3000";
 
   ActivityProvider() {
     _monitorConnectivity();
@@ -99,34 +99,91 @@ class ActivityProvider with ChangeNotifier {
       notifyListeners();
       return;
     }
-
+    debugPrint('UserID: $userId');
+    debugPrint('Token: $token');
     try {
       final uri = Uri.parse("$_baseUrl/activity/internal/$userId");
       final resp = await http.get(
         uri,
         headers: {'Cookie': 'access_token=$token'},
       );
+      debugPrint('Respuesta HTTP: ${resp.statusCode}');
 
       if (resp.statusCode == 200) {
-        final List<dynamic> data = json.decode(resp.body);
-        _activities = data.map<Map<String, dynamic>>((item) {
-          DateTime parsedDate = DateTime.parse(item['Activity_Date']);
-          String formattedDate = DateFormat('dd-MMM-yyyy').format(parsedDate);
-          String time =
-              item['Activity_StartTime']?.toString().substring(0, 5) ?? '';
-          return {
-            'id': item['Activity_ID'].toString(),
-            'title': item['Activity_Type'] ?? '',
-            'imageUrl': (['assets/entrega.png', 'assets/diligencia.png']
-                  ..shuffle())
-                .first,
-            'location': item['Activity_Location'] ?? '',
-            'date': formattedDate,
-            'time': time,
-            'estado_registro': item['Activity_Status'] ?? '',
-          };
-        }).toList();
+        debugPrint('🔍 Respuesta completa del servidor: ${resp.body}');
 
+        final List<dynamic> data = json.decode(resp.body);
+        debugPrint('🔍 Total de actividades recibidas: ${data.length}');
+
+        _activities = [];
+
+        for (int i = 0; i < data.length; i++) {
+          try {
+            final item = data[i];
+            debugPrint('🔍 ========== Procesando actividad $i ==========');
+            debugPrint('🔍 Item completo: $item');
+            debugPrint('🔍 Activity_ID: ${item['Activity_ID']}');
+            debugPrint('🔍 Activity_Type: ${item['Activity_Type']}');
+            debugPrint('🔍 Activity_Date: ${item['Activity_Date']}');
+            debugPrint('🔍 Activity_StartTime: ${item['Activity_StartTime']}');
+            debugPrint('🔍 Activity_Location: ${item['Activity_Location']}');
+            debugPrint('🔍 Activity_Status: ${item['Activity_Status']}');
+
+            // Parsear fecha con manejo de errores
+            DateTime parsedDate;
+            try {
+              parsedDate = DateTime.parse(item['Activity_Date']);
+              debugPrint('✅ Fecha parseada correctamente: $parsedDate');
+            } catch (e) {
+              debugPrint('❌ Error parseando fecha: $e');
+              parsedDate = DateTime.now(); // Fecha por defecto
+            }
+
+            String formattedDate = DateFormat('dd-MMM-yyyy').format(parsedDate);
+            debugPrint('✅ Fecha formateada: $formattedDate');
+
+            // Parsear tiempo con manejo de errores
+            String time = '';
+            try {
+              if (item['Activity_StartTime'] != null) {
+                time = item['Activity_StartTime'].toString();
+                if (time.length >= 5) {
+                  time = time.substring(0, 5);
+                }
+                debugPrint('✅ Tiempo formateado: $time');
+              } else {
+                debugPrint('⚠️ Activity_StartTime es null');
+              }
+            } catch (e) {
+              debugPrint('❌ Error parseando tiempo: $e');
+              time = '';
+            }
+
+            final activity = {
+              'id': item['Activity_ID'].toString(),
+              'title': item['Activity_Type']?.toString() ?? 'Sin título',
+              'imageUrl': (['assets/entrega.png', 'assets/diligencia.png']
+                    ..shuffle())
+                  .first,
+              'location':
+                  item['Activity_Location']?.toString() ?? 'Sin ubicación',
+              'date': formattedDate,
+              'time': time,
+              'estado_registro': item['Activity_Status']?.toString() ?? '',
+            };
+
+            _activities.add(activity);
+            debugPrint('✅ Actividad $i agregada exitosamente');
+          } catch (e, stackTrace) {
+            debugPrint('❌ ERROR procesando actividad $i: $e');
+            debugPrint('❌ Stack trace: $stackTrace');
+            // Continúa con la siguiente actividad
+            continue;
+          }
+        }
+
+        debugPrint(
+            '🎉 Total de actividades procesadas exitosamente: ${_activities.length}');
         await _saveToCache(); // 🔹 Actualiza el cache con la nueva lista
       } else {
         debugPrint("Error HTTP ${resp.statusCode}");
@@ -243,6 +300,9 @@ class ActivityProvider with ChangeNotifier {
     required String activityId,
     required String recordType, // "entrada" o "salida"
     required Position position,
+    String?
+        activityStatus, // 🔥 Nuevo: Estado de la actividad (Completada, Suspendida, etc.)
+    String? observation, // 🔥 Nuevo: Observación/resumen
   }) async {
     final conn = await Connectivity().checkConnectivity();
 
@@ -253,8 +313,20 @@ class ActivityProvider with ChangeNotifier {
       'Activity_Record_Latitude': position.latitude,
       'Activity_Record_Longitude': position.longitude,
       'Activity_Record_On_Time': true,
-      'Activity_Record_Observation': ''
+      'Activity_Record_Observation':
+          observation ?? '', // 🔥 Usa la observación proporcionada
+      if (activityStatus != null && recordType == 'salida')
+        'Activity_Status': activityStatus, // 🔥 Solo envía estado si es salida
     };
+
+    // 🔍 Debug: Ver qué se está enviando
+    debugPrint("📤 Payload a enviar:");
+    debugPrint("   - Activity_ID: ${payload['Activity_ID']}");
+    debugPrint("   - Type: ${payload['Activity_Record_Type']}");
+    debugPrint("   - Status: ${payload['Activity_Status'] ?? 'N/A'}");
+    debugPrint("   - Observation: ${payload['Activity_Record_Observation']}");
+    debugPrint(
+        "   - Observation length: ${(payload['Activity_Record_Observation'] as String).length} chars");
 
     if (conn == ConnectivityResult.none || _isOffline) {
       // 🔹 Ahora también chequea _isOffline
