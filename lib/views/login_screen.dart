@@ -95,6 +95,8 @@ class LoginScreenState extends State<LoginScreen> {
         if (userEmail != null) {
           await storage.saveUserEmail(userEmail);
         }
+        // Guardar timestamp de inicio de sesión
+        await storage.saveLastActivityTime();
 
         if (!mounted) return;
         setState(() => _isLoading = false);

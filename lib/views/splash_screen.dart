@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/secure_storage_service.dart';
+import '../services/session_manager.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 
@@ -28,11 +29,24 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
-      // Si existe el token, redirige al HomeScreen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+      // Verificar si la sesión ha expirado
+      final isExpired = await storage.isSessionExpired();
+      
+      if (isExpired) {
+        // Sesión expirada, limpiar datos y redirigir al login
+        await storage.clearAll();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      } else {
+        // Sesión válida, actualizar timestamp y redirigir al home
+        await storage.saveLastActivityTime();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
     } else {
       // Sino, redirige al LoginScreen
       Navigator.pushReplacement(

@@ -90,6 +90,33 @@ class SecureStorageService {
     return prefs.getString('activities_cache');
   }
 
+  // ========== MÉTODOS PARA GESTIÓN DE SESIÓN ==========
+
+  /// Guarda el timestamp de la última actividad del usuario
+  Future<void> saveLastActivityTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    await prefs.setInt('last_activity_time', timestamp);
+  }
+
+  /// Lee el timestamp de la última actividad
+  Future<int?> getLastActivityTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('last_activity_time');
+  }
+
+  /// Verifica si la sesión ha expirado (30 minutos de inactividad)
+  Future<bool> isSessionExpired() async {
+    final lastActivity = await getLastActivityTime();
+    if (lastActivity == null) return true;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final difference = now - lastActivity;
+    const thirtyMinutesInMillis = 30 * 60 * 1000; // 30 minutos
+
+    return difference > thirtyMinutesInMillis;
+  }
+
   // ========== MÉTODO PARA LIMPIAR TODO (LOGOUT) ==========
 
   /// Limpia TODOS los datos (seguro y no seguro)

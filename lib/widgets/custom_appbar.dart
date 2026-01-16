@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/secure_storage_service.dart';
+import '../services/session_manager.dart';
 import '../views/login_screen.dart';
 import '../providers/activity_provider.dart';
 
@@ -16,14 +17,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// Limpia todas las preferencias (seguras y no seguras) y vuelve al login
   Future<void> _logout(BuildContext context) async {
-    final storage = SecureStorageService();
-    await storage
-        .clearAll(); // 🔐 Limpia TODO: token seguro + SharedPreferences
-    if (!context.mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    // Usar SessionManager para cerrar sesión de forma centralizada
+    await SessionManager().logout();
   }
 
   Future<void> _toggleOffline(BuildContext context) async {

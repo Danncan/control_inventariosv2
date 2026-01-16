@@ -10,6 +10,7 @@ import '../widgets/custom_appbar.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../widgets/activity_card.dart';
 import '../providers/activity_provider.dart';
+import '../services/session_manager.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,6 +29,11 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Iniciar verificación de sesión
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      SessionManager().startSessionTimer(context);
+    });
 
     // 1️⃣ Sigue escuchando cambios de conectividad…
     Connectivity().checkConnectivity().then((res) {
@@ -62,6 +68,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    SessionManager().stopSessionTimer();
     _connectivitySub.cancel();
     _pageControllerHoy.dispose();
     _pageControllerProximas.dispose();
@@ -190,26 +197,32 @@ class HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    return Scaffold(
-      appBar: const CustomAppBar(title: 'Actividades Por Realizar'),
-      body: Column(
-        children: [
-          if (!_hasConnection)
-            Container(
-              width: double.infinity,
-              color: Colors.red,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: const Center(
-                child: Text(
-                  "Sin conexión: mostrando datos locales",
-                  style: TextStyle(color: Colors.white),
+    return GestureDetector(
+      onTap: () {
+        // Actualizar timestamp de actividad en cada interacción
+        SessionManager().updateActivity();
+      },
+      child: Scaffold(
+        appBar: const CustomAppBar(title: 'Actividades Por Realizar'),
+        body: Column(
+          children: [
+            if (!_hasConnection)
+              Container(
+                width: double.infinity,
+                color: Colors.red,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: const Center(
+                  child: Text(
+                    "Sin conexión: mostrando datos locales",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ),
-            ),
-          Expanded(child: body),
-        ],
+            Expanded(child: body),
+          ],
+        ),
+        bottomNavigationBar: const CustomBottomNav(currentIndex: 1),
       ),
-      bottomNavigationBar: const CustomBottomNav(currentIndex: 1),
     );
   }
 }
