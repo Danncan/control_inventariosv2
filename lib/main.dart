@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/activity_provider.dart';
-import 'views/splash_screen.dart'; // Importa la nueva pantalla de splash
+import 'views/splash_screen.dart';
 
 void main() {
   runApp(
@@ -23,8 +23,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Gestión de Actividades',
       theme: ThemeData(primarySwatch: Colors.teal),
-      home:
-          const SplashScreen(), // Arranca en SplashScreen para verificar el login
+      home: const SplashScreen(),
     );
   }
 }
